@@ -1,6 +1,3 @@
-
-** This is project is archived and renamed to [qsql](https://github.com/gwaylib/qsql) **
-
 # Refere to:
 ```
 database/sql
@@ -32,26 +29,26 @@ package db
 
 import (
 	"github.com/gwaylib/conf"
-	"github.com/gwaylib/database"
+	"github.com/gwaylib/qsql"
 	_ "github.com/go-sql-driver/mysql"
 )
 
 var dbFile = conf.RootDir() + "/etc/db.cfg"
 
 func init() {
-   database.REFLECT_DRV_NAME = database.DRV_NAME_MYSQL 
+   qsql.REFLECT_DRV_NAME = qsql.DRV_NAME_MYSQL 
 }
 
-func GetCache(section string) *database.DB {
-	return database.GetCache(dbFile, section)
+func GetCache(section string) *qsql.DB {
+	return qsql.GetCache(dbFile, section)
 }
 
-func HasCache(section string) (*database.DB, error) {
-	return database.HasCache(dbFile, section)
+func HasCache(section string) (*qsql.DB, error) {
+	return qsql.HasCache(dbFile, section)
 }
 
 func CloseCache() {
-	database.CloseCache()
+	qsql.CloseCache()
 }
 ```
 
@@ -66,15 +63,15 @@ mdb := db.GetCache("master")
 // or mdb = <sql.Tx>
 
 // row := mdb.QueryRow("SELECT * ...")
-row := database.QueryRow(mdb, "SELECT * ...")
+row := qsql.QueryRow(mdb, "SELECT * ...")
 // ...
 
 // rows, err := mdb.Query("SELECT * ...")
-rows, err := database.Query(mdb, "SELECT * ...")
+rows, err := qsql.Query(mdb, "SELECT * ...")
 // ...
 
 // result, err := mdb.Exec("UPDATE ...")
-result, err := database.Exec(mdb, "UPDATE ...")
+result, err := qsql.Exec(mdb, "UPDATE ...")
 // ...
 ```
 
@@ -91,13 +88,13 @@ var u = &User{
 }
 
 // Insert data with default driver.
-if _, err := database.InsertStruct(mdb, u, "testing"); err != nil{
+if _, err := qsql.InsertStruct(mdb, u, "testing"); err != nil{
     // ... 
 }
 // ...
 
 // Or Insert data with designated driver.
-if _, err := database.InsertStruct(mdb, u, "testing", database.DRV_NAME_MYSQL); err != nil{
+if _, err := qsql.InsertStruct(mdb, u, "testing", qsql.DRV_NAME_MYSQL); err != nil{
     // ... 
 }
 // ...
@@ -115,7 +112,7 @@ type User struct{
 mdb := db.GetCache("master") 
 // or mdb = <sql.Tx>
 var u = *User{}
-if err := database.QueryStruct(mdb, u, "SELECT id, name FROM a WHERE id = ?", id)
+if err := qsql.QueryStruct(mdb, u, "SELECT id, name FROM a WHERE id = ?", id)
 if err != nil{
     // ...
 }
@@ -125,7 +122,7 @@ if err != nil{
 mdb := db.GetCache("master") 
 // or mdb = <sql.Tx>
 var u = *User{}
-if err := database.ScanStruct(database.QueryRow(mdb, "SELECT id, name FROM a WHERE id = ?", id), u); err != nil {
+if err := qsql.ScanStruct(qsql.QueryRow(mdb, "SELECT id, name FROM a WHERE id = ?", id), u); err != nil {
     // ...
 }
 
@@ -133,7 +130,7 @@ if err := database.ScanStruct(database.QueryRow(mdb, "SELECT id, name FROM a WHE
 mdb := db.GetCache("master") 
 // or mdb = <sql.Tx>
 var u = []*User{}
-if err := database.QueryStructs(mdb, &u, "SELECT id, name FROM a WHERE id = ?", id); err != nil {
+if err := qsql.QueryStructs(mdb, &u, "SELECT id, name FROM a WHERE id = ?", id); err != nil {
     // ...
 }
 if len(u) == 0{
@@ -145,13 +142,13 @@ if len(u) == 0{
 // Way 4: query rows to structs
 mdb := db.GetCache("master") 
 // or mdb = <sql.Tx>
-rows, err := database.Query(mdb, "SELECT id, name FROM a WHERE id = ?", id)
+rows, err := qsql.Query(mdb, "SELECT id, name FROM a WHERE id = ?", id)
 if err != nil {
     // ...
 }
-defer database.Close(rows)
+defer qsql.Close(rows)
 var u = []*User{}
-if err := database.ScanStructs(rows, &u); err != nil{
+if err := qsql.ScanStructs(rows, &u); err != nil{
     // ...
 }
 if len(u) == 0{
@@ -167,7 +164,7 @@ if len(u) == 0{
 mdb := db.GetCache("master") 
 // or mdb = <sql.Tx>
 count := 0
-if err := database.QueryElem(mdb, &count, "SELECT count(*) FROM a WHERE id = ?", id); err != nil{
+if err := qsql.QueryElem(mdb, &count, "SELECT count(*) FROM a WHERE id = ?", id); err != nil{
     // ...
 }
 ```
@@ -175,7 +172,7 @@ if err := database.QueryElem(mdb, &count, "SELECT count(*) FROM a WHERE id = ?",
 ## Mass query.
 ```text
 mdb := db.GetCache("master") 
-qSql = &database.Page{
+qSql = &qsql.Page{
      CountSql:`SELECT count(1) FROM user_info WHERE create_time >= ? AND create_time <= ?`,
      DataSql:`SELECT mobile, balance FROM user_info WHERE create_time >= ? AND create_time <= ?`
 }
@@ -191,12 +188,12 @@ if err != nil {
 
 ## Make a MultiTx
 ``` text
-multiTx := []*database.MultiTx{}
-multiTx = append(multiTx, database.NewMultiTx(
+multiTx := []*qsql.MultiTx{}
+multiTx = append(multiTx, qsql.NewMultiTx(
     "UPDATE testing SET name = ? WHERE id = ?",
     id,
 ))
-multiTx = append(multiTx, database.NewMultiTx(
+multiTx = append(multiTx, qsql.NewMultiTx(
     "UPDATE testing SET name = ? WHERE id = ?",
     id,
 ))
@@ -207,12 +204,12 @@ tx, err := mdb.Begin()
 if err != nil{
     // ...
 }
-if err := database.ExecMutlTx(tx, multiTx); err != nil {
-    database.Rollback(tx)
+if err := qsql.ExecMutlTx(tx, multiTx); err != nil {
+    qsql.Rollback(tx)
     // ...
 }
 if err := tx.Commit(); err != nil {
-    database.Rollback(tx)
+    qsql.Rollback(tx)
     // ...
 }
 ```

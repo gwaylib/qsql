@@ -1,7 +1,7 @@
 //
 // Example:
 //
-// qSql = &database.Page{
+// qSql = &qsql.Page{
 //      CountSql:`SELECT count(1) FROM user_info WHERE create_time >= ? AND create_time <= ?`,
 //      DataSql:`SELECT mobile, balance FROM user_info WHERE create_time >= ? AND create_time <= ?`
 // }
@@ -14,7 +14,7 @@
 // ...
 // }
 //
-package database
+package qsql
 
 import (
 	"fmt"

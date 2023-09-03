@@ -1,7 +1,7 @@
 /*
 Provides database connections in factory mode to optimize database connections
 */
-package database
+package qsql
 
 import (
 	"context"
@@ -25,7 +25,7 @@ var (
 	// Whe reflect the QueryStruct, InsertStruct, it need set the Driver first.
 	// For example:
 	// func init(){
-	//     database.REFLECT_DRV_NAME = database.DEV_NAME_SQLITE3
+	//     qsql.REFLECT_DRV_NAME = qsql.DEV_NAME_SQLITE3
 	// }
 	// Default is using the mysql driver.
 	REFLECT_DRV_NAME = DRV_NAME_MYSQL

@@ -1,4 +1,4 @@
-package database
+package qsql
 
 import (
 	"database/sql"

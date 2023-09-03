@@ -1,4 +1,4 @@
-module github.com/gwaylib/database
+module github.com/gwaylib/qsql
 
 go 1.13
 

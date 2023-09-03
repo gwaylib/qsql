@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/gwaylib/database"
 	"github.com/gwaylib/errors"
+	"github.com/gwaylib/qsql"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -15,11 +15,11 @@ type TestingUser struct {
 }
 
 func main() {
-	mdb, _ := database.Open("sqlite3", ":memory:")
-	defer database.Close(mdb)
+	mdb, _ := qsql.Open("sqlite3", ":memory:")
+	defer qsql.Close(mdb)
 
 	// create table
-	if _, err := database.Exec(mdb,
+	if _, err := qsql.Exec(mdb,
 		`CREATE TABLE user (
 		  "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
 		  "created_at" datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -30,13 +30,13 @@ func main() {
 	}
 
 	// std insert
-	if _, err := database.Exec(mdb, "INSERT INTO user(username,passwd)VALUES(?,?)", "t1", "t1"); err != nil {
+	if _, err := qsql.Exec(mdb, "INSERT INTO user(username,passwd)VALUES(?,?)", "t1", "t1"); err != nil {
 		panic(err)
 	}
 
 	// reflect insert
 	newUser := &TestingUser{UserName: "t2", Passwd: "t2"}
-	if _, err := database.InsertStruct(mdb, newUser, "user"); err != nil {
+	if _, err := qsql.InsertStruct(mdb, newUser, "user"); err != nil {
 		panic(err)
 	}
 	if newUser.ID == 0 {
@@ -46,7 +46,7 @@ func main() {
 	// std query
 	var id int64
 	var username, passwd string
-	if err := database.QueryRow(mdb, "SELECT id, username, passwd FROM user WHERE username=?", "t1").Scan(&id, &username, &passwd); err != nil {
+	if err := qsql.QueryRow(mdb, "SELECT id, username, passwd FROM user WHERE username=?", "t1").Scan(&id, &username, &passwd); err != nil {
 		panic(err)
 	}
 	if username != "t1" && passwd != "t1" {
@@ -59,14 +59,14 @@ func main() {
 	// reflect query
 	// query struct data
 	expectUser := &TestingUser{}
-	if err := database.QueryStruct(mdb, expectUser, "SELECT * FROM user WHERE username=?", "t1"); err != nil {
+	if err := qsql.QueryStruct(mdb, expectUser, "SELECT * FROM user WHERE username=?", "t1"); err != nil {
 		panic(err)
 	}
 	if expectUser.UserName != "t1" && expectUser.Passwd != "t1" {
 		panic("data not match")
 	}
 	users := []*TestingUser{}
-	if err := database.QueryStructs(mdb, &users, "SELECT * FROM user LIMIT 2"); err != nil {
+	if err := qsql.QueryStructs(mdb, &users, "SELECT * FROM user LIMIT 2"); err != nil {
 		panic(err)
 	}
 	if len(users) != 2 {
@@ -74,14 +74,14 @@ func main() {
 	}
 	// query elememt data
 	pwd := ""
-	if err := database.QueryElem(mdb, &pwd, "SELECT passwd FROM user WHERE username=?", "t1"); err != nil {
+	if err := qsql.QueryElem(mdb, &pwd, "SELECT passwd FROM user WHERE username=?", "t1"); err != nil {
 		panic(err)
 	}
 	if pwd != "t1" {
 		panic(pwd)
 	}
 	ids := []int64{}
-	if err := database.QueryElems(mdb, &ids, "SELECT id FROM user LIMIT 2"); err != nil {
+	if err := qsql.QueryElems(mdb, &ids, "SELECT id FROM user LIMIT 2"); err != nil {
 		panic(err)
 	}
 	if len(ids) != 2 {
@@ -91,14 +91,14 @@ func main() {
 
 	// query data in string
 	// table type
-	titles, data, err := database.QueryPageArr(mdb, "SELECT * FROM user LIMIT 10")
+	titles, data, err := qsql.QueryPageArr(mdb, "SELECT * FROM user LIMIT 10")
 	if err != nil {
 		panic(err)
 	}
 	fmt.Printf("PageArr title:%+v\n", titles)
 	fmt.Printf("PageArr data: %+v\n", data)
 	// map type
-	titles, mData, err := database.QueryPageMap(mdb, "SELECT * FROM user LIMIT 10")
+	titles, mData, err := qsql.QueryPageMap(mdb, "SELECT * FROM user LIMIT 10")
 	if err != nil {
 		panic(err)
 	}
@@ -115,15 +115,15 @@ func main() {
 		{UserName: "t4", Passwd: "t4"},
 	}
 	for _, u := range txUsers {
-		if _, err := database.InsertStruct(tx, &u, "user"); err != nil {
+		if _, err := qsql.InsertStruct(tx, &u, "user"); err != nil {
 			println(errors.As(err))
-			database.Rollback(tx)
+			qsql.Rollback(tx)
 			return
 		}
 	}
 	if err := tx.Commit(); err != nil {
 		println(errors.As(err))
-		database.Rollback(tx)
+		qsql.Rollback(tx)
 		return
 	}
 
