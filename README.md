@@ -29,6 +29,7 @@ package db
 
 import (
 	"github.com/gwaylib/conf"
+	"github.com/gwaylib/errors"
 	"github.com/gwaylib/qsql"
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -114,6 +115,10 @@ mdb := db.GetCache("master")
 var u = *User{}
 if err := qsql.QueryStruct(mdb, u, "SELECT id, name FROM a WHERE id = ?", id)
 if err != nil{
+    // sql.ErrNoRows has been replace by errors.ErrNoData
+    if errors.ErrNoData.Equal(err) {
+       // no data
+    }
     // ...
 }
 // ..
@@ -123,6 +128,10 @@ mdb := db.GetCache("master")
 // or mdb = <sql.Tx>
 var u = *User{}
 if err := qsql.ScanStruct(qsql.QueryRow(mdb, "SELECT id, name FROM a WHERE id = ?", id), u); err != nil {
+    // sql.ErrNoRows has been replace by errors.ErrNoData
+    if errors.ErrNoData.Equal(err) {
+       // no data
+    }
     // ...
 }
 
@@ -165,6 +174,10 @@ mdb := db.GetCache("master")
 // or mdb = <sql.Tx>
 count := 0
 if err := qsql.QueryElem(mdb, &count, "SELECT count(*) FROM a WHERE id = ?", id); err != nil{
+    // sql.ErrNoRows has been replace by errors.ErrNoData
+    if errors.ErrNoData.Equal(err) {
+       // no data
+    }
     // ...
 }
 ```

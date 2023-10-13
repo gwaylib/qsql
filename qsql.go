@@ -147,7 +147,7 @@ func scanStruct(rows Rows, obj interface{}) error {
 		return errors.As(err)
 	}
 	if !rows.Next() {
-		return sql.ErrNoRows
+		return errors.ErrNoData
 	}
 	if err := rows.Scan(values...); err != nil {
 		return errors.As(err)
@@ -227,10 +227,10 @@ func queryStructs(db Queryer, ctx context.Context, obj interface{}, querySql str
 
 func queryElem(db Queryer, ctx context.Context, result interface{}, querySql string, args ...interface{}) error {
 	if err := db.QueryRowContext(ctx, querySql, args...).Scan(result); err != nil {
-		if sql.ErrNoRows != err {
-			return errors.As(err, querySql, args)
+		if sql.ErrNoRows == err {
+			return errors.ErrNoData.As(args)
 		}
-		return err
+		return errors.As(err, querySql, args)
 	}
 	return nil
 }
