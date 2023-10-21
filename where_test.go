@@ -24,3 +24,18 @@ func TestStmtWhereIn(t *testing.T) {
 		t.Fatalf("expect '@p1,@p2,@p3', but@ %s", msOutput1)
 	}
 }
+
+func TestStmtSliceToArr(t *testing.T) {
+	in := []string{"a", "b", "c"}
+	out := SliceToArgs(in)
+	if len(out) != 3 {
+		t.Fatalf("expect 3, but:%d", len(out))
+	}
+	arg1, ok := out[0].(string)
+	if !ok {
+		t.Fatal("expect string, but not")
+	}
+	if arg1 != "a" {
+		t.Fatalf("expect 'a' , but: %s ", arg1)
+	}
+}

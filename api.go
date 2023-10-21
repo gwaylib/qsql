@@ -6,99 +6,12 @@ package qsql
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"io"
 	"runtime/debug"
 
 	"github.com/gwaylib/errors"
 	"github.com/gwaylib/log"
 )
-
-const (
-	DRV_NAME_MYSQL     = "mysql"
-	DRV_NAME_ORACLE    = "oracle" // or "oci8"
-	DRV_NAME_POSTGRES  = "postgres"
-	DRV_NAME_SQLITE3   = "sqlite3"
-	DRV_NAME_SQLSERVER = "sqlserver" // or "mssql"
-
-	_DRV_NAME_OCI8  = "oci8"
-	_DRV_NAME_MSSQL = "mssql"
-)
-
-var (
-	// Whe reflect the QueryStruct, InsertStruct, it need set the Driver first.
-	// For example:
-	// func init(){
-	//     qsql.REFLECT_DRV_NAME = qsql.DEV_NAME_SQLITE3
-	// }
-	// Default is using the mysql driver.
-	REFLECT_DRV_NAME = DRV_NAME_MYSQL
-)
-
-func getDrvName(exec Execer, driverName ...string) string {
-	drvName := REFLECT_DRV_NAME
-	db, ok := exec.(*DB)
-	if ok {
-		drvName = db.DriverName()
-	} else {
-		drvNamesLen := len(driverName)
-		if drvNamesLen > 0 {
-			if drvNamesLen != 1 {
-				panic(errors.New("'drvName' expect only one argument").As(driverName))
-			}
-			drvName = driverName[0]
-		}
-	}
-	return drvName
-}
-
-// Extend the where in stmt
-//
-// Example for the first input:
-// fmt.Sprintf("select * from table_name where in (%s)", qsql.StmtWhereIn(0,len(args))
-// Or
-// fmt.Sprintf("select * from table_name where in (%s)", qsql.StmtWhereIn(0,len(args), qsql.DRV_NAME_MYSQL)
-//
-// Example for the second input:
-// fmt.Sprintf("select * from table_name where id=? in (%s)", qsql.StmtWhereIn(1,len(args))
-//
-func StmtWhereIn(paramIdx, paramsLen int, driverName ...string) string {
-	drvName := getDrvName(nil, driverName...)
-	switch drvName {
-	case DRV_NAME_ORACLE, _DRV_NAME_OCI8:
-		// *outputInputs = append(*outputInputs, []byte(fmt.Sprintf(":%s,", f.Name))...)
-		panic("unknow how to implemented")
-	case DRV_NAME_POSTGRES:
-		result := []byte{}
-		for i := 0; i < paramsLen; i++ {
-			result = append(result, []byte(fmt.Sprintf(":%d,", paramIdx+i))...)
-		}
-		if len(result) > 0 {
-			return string(result[:len(result)-1]) // remove the last ','
-		}
-		return string(result)
-	case DRV_NAME_SQLSERVER, _DRV_NAME_MSSQL:
-		result := []byte{}
-		for i := 0; i < paramsLen; i++ {
-			result = append(result, []byte(fmt.Sprintf("@p%d,", paramIdx+i))...)
-		}
-		if len(result) > 0 {
-			return string(result[:len(result)-1]) // remove the last ','
-		}
-		return string(result)
-	default:
-		resultLen := paramsLen * 2
-		result := make([]byte, resultLen)
-		for i := 0; i < resultLen; i += 2 {
-			result[i] = '?'
-			result[i+1] = ','
-		}
-		if len(result) > 0 {
-			return string(result[:len(result)-1]) // remove the last ','
-		}
-		return string(result)
-	}
-}
 
 type Execer interface {
 	Exec(query string, args ...interface{}) (sql.Result, error)

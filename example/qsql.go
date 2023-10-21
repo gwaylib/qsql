@@ -72,6 +72,7 @@ func main() {
 	if len(users) != 2 {
 		panic("expect len==2")
 	}
+
 	// query elememt data
 	pwd := ""
 	if err := qsql.QueryElem(mdb, &pwd, "SELECT passwd FROM user WHERE username=?", "t1"); err != nil {
@@ -88,6 +89,19 @@ func main() {
 		panic("expect len==2")
 	}
 	fmt.Printf("ids:%+v\n", ids)
+
+	// query where in
+	whereIn := []string{"t1", "t2"}
+	whereInCount := 0
+	if err := qsql.QueryElem(mdb, &whereInCount,
+		fmt.Sprintf("SELECT COUNT(*) FROM user WHERE username in (%s)", qsql.StmtWhereIn(0, len(whereIn))),
+		qsql.SliceToArgs(whereIn)...,
+	); err != nil {
+		panic(err)
+	}
+	if whereInCount != 2 {
+		panic("expect count of whereIn is 2")
+	}
 
 	// query data in string
 	// table type

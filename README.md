@@ -185,12 +185,12 @@ if err := qsql.QueryElem(mdb, &count, "SELECT count(*) FROM a WHERE id = ?", id)
 // Example for the first input:
 mdb := db.GetCache("master") 
 args:=[]int{1,2,3}
-mdb.Query(fmt.Sprintf("select * from table_name where in (%s)", qsql.StmtWhereIn(0,len(args))))
+mdb.Query(fmt.Sprintf("select * from table_name where in (%s)", qsql.StmtWhereIn(0,len(args))), qsql.SliceToArgs(args)...)
 // Or
-mdb.Query(fmt.Sprintf("select * from table_name where in (%s)", qsql.StmtWhereIn(0,len(args), qsql.DRV_NAME_MYSQL))
+mdb.Query(fmt.Sprintf("select * from table_name where in (%s)", qsql.StmtWhereIn(0,len(args), qsql.DRV_NAME_MYSQL), qsql.SliceToArgs(args)...)
 
 // Example for the second input:
-mdb.Query(fmt.Sprintf("select * from table_name where id=? in (%s)", qsql.StmtWhereIn(1,len(args)))
+mdb.Query(fmt.Sprintf("select * from table_name where id=? in (%s)", qsql.StmtWhereIn(1,len(args)), id, qsql.SliceToArgs(args)...)
 
 ## Mass query.
 ```text
