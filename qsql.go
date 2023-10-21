@@ -25,20 +25,8 @@ const (
 
 // field flag like: `db:"name"`
 // more: github.com/jmoiron/sqlx
-func insertStruct(exec Execer, ctx context.Context, obj interface{}, tbName string, drvNames ...string) (sql.Result, error) {
-	drvName := REFLECT_DRV_NAME
-	db, ok := exec.(*DB)
-	if ok {
-		drvName = db.DriverName()
-	} else {
-		drvNamesLen := len(drvNames)
-		if drvNamesLen > 0 {
-			if drvNamesLen != 0 {
-				panic(errors.New("'drvNames' expect only one argument").As(drvNames))
-			}
-			drvName = drvNames[0]
-		}
-	}
+func insertStruct(exec Execer, ctx context.Context, obj interface{}, tbName string, driverName ...string) (sql.Result, error) {
+	drvName := getDrvName(exec, driverName...)
 
 	fields, err := reflectInsertStruct(obj, drvName)
 	if err != nil {

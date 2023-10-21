@@ -6,6 +6,7 @@ package qsql
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"io"
 	"runtime/debug"
 
@@ -19,6 +20,9 @@ const (
 	DRV_NAME_POSTGRES  = "postgres"
 	DRV_NAME_SQLITE3   = "sqlite3"
 	DRV_NAME_SQLSERVER = "sqlserver" // or "mssql"
+
+	_DRV_NAME_OCI8  = "oci8"
+	_DRV_NAME_MSSQL = "mssql"
 )
 
 var (
@@ -30,6 +34,71 @@ var (
 	// Default is using the mysql driver.
 	REFLECT_DRV_NAME = DRV_NAME_MYSQL
 )
+
+func getDrvName(exec Execer, driverName ...string) string {
+	drvName := REFLECT_DRV_NAME
+	db, ok := exec.(*DB)
+	if ok {
+		drvName = db.DriverName()
+	} else {
+		drvNamesLen := len(driverName)
+		if drvNamesLen > 0 {
+			if drvNamesLen != 1 {
+				panic(errors.New("'drvName' expect only one argument").As(driverName))
+			}
+			drvName = driverName[0]
+		}
+	}
+	return drvName
+}
+
+// Extend the where in stmt
+//
+// Example for the first input:
+// fmt.Sprintf("select * from table_name where in (%s)", qsql.StmtWhereIn(0,len(args))
+// Or
+// fmt.Sprintf("select * from table_name where in (%s)", qsql.StmtWhereIn(0,len(args), qsql.DRV_NAME_MYSQL)
+//
+// Example for the second input:
+// fmt.Sprintf("select * from table_name where id=? in (%s)", qsql.StmtWhereIn(1,len(args))
+//
+func StmtWhereIn(paramIdx, paramsLen int, driverName ...string) string {
+	drvName := getDrvName(nil, driverName...)
+	switch drvName {
+	case DRV_NAME_ORACLE, _DRV_NAME_OCI8:
+		// *outputInputs = append(*outputInputs, []byte(fmt.Sprintf(":%s,", f.Name))...)
+		panic("unknow how to implemented")
+	case DRV_NAME_POSTGRES:
+		result := []byte{}
+		for i := 0; i < paramsLen; i++ {
+			result = append(result, []byte(fmt.Sprintf(":%d,", paramIdx+i))...)
+		}
+		if len(result) > 0 {
+			return string(result[:len(result)-1]) // remove the last ','
+		}
+		return string(result)
+	case DRV_NAME_SQLSERVER, _DRV_NAME_MSSQL:
+		result := []byte{}
+		for i := 0; i < paramsLen; i++ {
+			result = append(result, []byte(fmt.Sprintf("@p%d,", paramIdx+i))...)
+		}
+		if len(result) > 0 {
+			return string(result[:len(result)-1]) // remove the last ','
+		}
+		return string(result)
+	default:
+		resultLen := paramsLen * 2
+		result := make([]byte, resultLen)
+		for i := 0; i < resultLen; i += 2 {
+			result[i] = '?'
+			result[i+1] = ','
+		}
+		if len(result) > 0 {
+			return string(result[:len(result)-1]) // remove the last ','
+		}
+		return string(result)
+	}
+}
 
 type Execer interface {
 	Exec(query string, args ...interface{}) (sql.Result, error)
@@ -129,11 +198,11 @@ func ExecMultiTxContext(tx *sql.Tx, ctx context.Context, mTx []*MultiTx) error {
 
 // Reflect one db data to the struct. the struct tag format like `db:"field_title"`, reference to: http://github.com/jmoiron/sqlx
 // When you no set the REFLECT_DRV_NAME, you can point out with the drvName
-func InsertStruct(exec Execer, obj interface{}, tbName string, drvNames ...string) (sql.Result, error) {
-	return insertStruct(exec, context.TODO(), obj, tbName, drvNames...)
+func InsertStruct(exec Execer, obj interface{}, tbName string, drvName ...string) (sql.Result, error) {
+	return insertStruct(exec, context.TODO(), obj, tbName, drvName...)
 }
-func InsertStructContext(exec Execer, ctx context.Context, obj interface{}, tbName string, drvNames ...string) (sql.Result, error) {
-	return insertStruct(exec, ctx, obj, tbName, drvNames...)
+func InsertStructContext(exec Execer, ctx context.Context, obj interface{}, tbName string, drvName ...string) (sql.Result, error) {
+	return insertStruct(exec, ctx, obj, tbName, drvName...)
 }
 
 // A sql.Query implements

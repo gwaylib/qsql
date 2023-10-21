@@ -206,20 +206,20 @@ func travelStructField(f *reflectx.FieldInfo, v *reflect.Value, order *int, drvN
 	}
 
 	*outputVals = append(*outputVals, v.Interface())
-	switch {
-	case strings.Index(*drvName, "oracle") > -1, strings.Index(*drvName, "oci8") > -1:
+	switch *drvName {
+	case DRV_NAME_ORACLE, _DRV_NAME_OCI8:
 		*order += 1
 		*outputNames = append(*outputNames, []byte("\""+f.Name+"\",")...)
 		*outputInputs = append(*outputInputs, []byte(fmt.Sprintf(":%s,", f.Name))...)
-	case strings.Index(*drvName, "postgres") > -1:
+	case DRV_NAME_POSTGRES:
 		*outputNames = append(*outputNames, []byte("\""+f.Name+"\",")...)
 		*outputInputs = append(*outputInputs, []byte(fmt.Sprintf(":%d,", *order))...)
 		*order += 1
-	case strings.Index(*drvName, "sqlserver") > -1, strings.Index(*drvName, "mssql") > -1:
+	case DRV_NAME_SQLSERVER, _DRV_NAME_MSSQL:
 		*outputNames = append(*outputNames, []byte("["+f.Name+"],")...)
 		*outputInputs = append(*outputInputs, []byte(fmt.Sprintf("@p%d,", *order))...)
 		*order += 1
-	case strings.Index(*drvName, "mysql") > -1:
+	case DRV_NAME_MYSQL:
 		*order += 1
 		*outputNames = append(*outputNames, []byte("`"+f.Name+"`,")...)
 		*outputInputs = append(*outputInputs, []byte("?,")...)
