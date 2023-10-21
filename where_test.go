@@ -25,9 +25,9 @@ func TestStmtWhereIn(t *testing.T) {
 	}
 }
 
-func TestStmtSliceToArr(t *testing.T) {
+func TestStmtSliceArgs(t *testing.T) {
 	in := []string{"a", "b", "c"}
-	out := SliceToArgs(in)
+	out := StmtSliceArgs(in)
 	if len(out) != 3 {
 		t.Fatalf("expect 3, but:%d", len(out))
 	}

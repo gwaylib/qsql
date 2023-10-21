@@ -53,11 +53,19 @@ func StmtWhereIn(paramIdx, paramsLen int, driverName ...string) string {
 	}
 }
 
-func SliceToArgs(arr interface{}) []interface{} {
-	val := reflect.ValueOf(arr)
-	result := make([]interface{}, val.Len())
-	for i := len(result) - 1; i > -1; i-- {
-		result[i] = val.Index(i).Interface()
+func StmtSliceArgs(args ...interface{}) []interface{} {
+	result := []interface{}{}
+	for _, arg := range args {
+		val := reflect.ValueOf(arg)
+		switch val.Kind() {
+		case reflect.Array, reflect.Slice:
+			arrLen := val.Len()
+			for i := 0; i < arrLen; i++ {
+				result = append(result, val.Index(i).Interface())
+			}
+		default:
+			result = append(result, arg)
+		}
 	}
 	return result
 }

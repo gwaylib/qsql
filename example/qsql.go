@@ -95,7 +95,7 @@ func main() {
 	whereInCount := 0
 	if err := qsql.QueryElem(mdb, &whereInCount,
 		fmt.Sprintf("SELECT COUNT(*) FROM user WHERE username in (%s)", qsql.StmtWhereIn(0, len(whereIn))),
-		qsql.SliceToArgs(whereIn)...,
+		qsql.StmtSliceArgs(whereIn)...,
 	); err != nil {
 		panic(err)
 	}
