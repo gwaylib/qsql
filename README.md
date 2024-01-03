@@ -64,11 +64,11 @@ func init() {
 }
 
 func GetCache(section string) *qsql.DB {
-	return qsql.GetCache(dbFile, section)
+	return qsql.GetCache(section)
 }
 
 func HasCache(section string) (*qsql.DB, error) {
-	return qsql.HasCache(dbFile, section)
+	return qsql.HasCache(section)
 }
 
 func CloseCache() {
