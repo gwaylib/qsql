@@ -60,15 +60,8 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-var dbFile = conf.RootDir() + "/etc/db.cfg"
-
 func init() {
-    if err := qsql.RegCacheWithIni(dbFile, "main"); err != nil{
-       panic(err)
-    }
-    if err := qsql.RegCacheWithIni(dbFile, "log"); err != nil{
-       panic(err)
-    }
+    qsql.RegCacheWithIni(conf.RootDir() + "/etc/db.cfg")
 }
 ```
 
