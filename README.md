@@ -55,13 +55,24 @@ package db
 
 import (
 	"github.com/gwaylib/conf"
-	"github.com/gwaylib/errors"
 	"github.com/gwaylib/qsql"
 	_ "github.com/go-sql-driver/mysql"
 )
 
 func init() {
     qsql.RegCacheWithIni(conf.RootDir() + "/etc/db.cfg")
+}
+
+func GetCache(section string) *qsql.DB {
+	return qsql.GetCache(dbFile, section)
+}
+
+func HasCache(section string) (*qsql.DB, error) {
+	return qsql.HasCache(dbFile, section)
+}
+
+func CloseCache() {
+	qsql.CloseCache()
 }
 ```
 
