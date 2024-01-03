@@ -36,7 +36,7 @@ func main() {
 
 	// reflect insert
 	newUser := &TestingUser{UserName: "t2", Passwd: "t2"}
-	if _, err := qsql.InsertStruct(mdb, newUser, "user"); err != nil {
+	if _, err := mdb.InsertStruct(newUser, "user"); err != nil {
 		panic(err)
 	}
 	if newUser.ID == 0 {
@@ -59,14 +59,14 @@ func main() {
 	// reflect query
 	// query struct data
 	expectUser := &TestingUser{}
-	if err := qsql.QueryStruct(mdb, expectUser, "SELECT * FROM user WHERE username=?", "t1"); err != nil {
+	if err := mdb.QueryStruct(expectUser, "SELECT * FROM user WHERE username=?", "t1"); err != nil {
 		panic(err)
 	}
 	if expectUser.UserName != "t1" && expectUser.Passwd != "t1" {
 		panic("data not match")
 	}
 	users := []*TestingUser{}
-	if err := qsql.QueryStructs(mdb, &users, "SELECT * FROM user LIMIT 2"); err != nil {
+	if err := mdb.QueryStructs(&users, "SELECT * FROM user LIMIT 2"); err != nil {
 		panic(err)
 	}
 	if len(users) != 2 {
@@ -75,14 +75,14 @@ func main() {
 
 	// query elememt data
 	pwd := ""
-	if err := qsql.QueryElem(mdb, &pwd, "SELECT passwd FROM user WHERE username=?", "t1"); err != nil {
+	if err := mdb.QueryElem(&pwd, "SELECT passwd FROM user WHERE username=?", "t1"); err != nil {
 		panic(err)
 	}
 	if pwd != "t1" {
 		panic(pwd)
 	}
 	ids := []int64{}
-	if err := qsql.QueryElems(mdb, &ids, "SELECT id FROM user LIMIT 2"); err != nil {
+	if err := mdb.QueryElems(&ids, "SELECT id FROM user LIMIT 2"); err != nil {
 		panic(err)
 	}
 	if len(ids) != 2 {
@@ -93,8 +93,8 @@ func main() {
 	// query where in
 	whereIn := []string{"t1", "t2"}
 	whereInCount := 0
-	if err := qsql.QueryElem(mdb, &whereInCount,
-		fmt.Sprintf("SELECT COUNT(*) FROM user WHERE username in (%s)", qsql.StmtWhereIn(0, len(whereIn))),
+	if err := mdb.QueryElem(&whereInCount,
+		fmt.Sprintf("SELECT COUNT(*) FROM user WHERE username in (%s)", mdb.StmtWhereIn(0, len(whereIn))),
 		qsql.StmtSliceArgs(whereIn)...,
 	); err != nil {
 		panic(err)
@@ -105,14 +105,14 @@ func main() {
 
 	// query data in string
 	// table type
-	titles, data, err := qsql.QueryPageArr(mdb, "SELECT * FROM user LIMIT 10")
+	titles, data, err := mdb.QueryPageArr("SELECT * FROM user LIMIT 10")
 	if err != nil {
 		panic(err)
 	}
 	fmt.Printf("PageArr title:%+v\n", titles)
 	fmt.Printf("PageArr data: %+v\n", data)
 	// map type
-	titles, mData, err := qsql.QueryPageMap(mdb, "SELECT * FROM user LIMIT 10")
+	titles, mData, err := mdb.QueryPageMap("SELECT * FROM user LIMIT 10")
 	if err != nil {
 		panic(err)
 	}
@@ -124,13 +124,13 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	if err := qsql.Commit(tx, func() error {
+	if err := mdb.Commit(tx, func() error {
 		txUsers := []TestingUser{
 			{UserName: "t3", Passwd: "t3"},
 			{UserName: "t4", Passwd: "t4"},
 		}
 		for _, u := range txUsers {
-			if _, err := qsql.InsertStruct(tx, &u, "user"); err != nil {
+			if _, err := qsql.InsertStruct(mdb.DriverName(), tx, &u, "user"); err != nil {
 				return errors.As(err)
 			}
 		}

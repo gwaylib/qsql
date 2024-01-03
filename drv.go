@@ -13,18 +13,8 @@ const (
 	_DRV_NAME_MSSQL = "mssql"
 )
 
-var (
-	// Whe reflect the QueryStruct, InsertStruct, it need set the Driver first.
-	// For example:
-	// func init(){
-	//     qsql.REFLECT_DRV_NAME = qsql.DEV_NAME_SQLITE3
-	// }
-	// Default is using the mysql driver.
-	REFLECT_DRV_NAME = DRV_NAME_MYSQL
-)
-
 func getDrvName(exec Execer, driverName ...string) string {
-	drvName := REFLECT_DRV_NAME
+	drvName := ""
 	db, ok := exec.(*DB)
 	if ok {
 		drvName = db.DriverName()
@@ -36,6 +26,9 @@ func getDrvName(exec Execer, driverName ...string) string {
 			}
 			drvName = driverName[0]
 		}
+	}
+	if len(drvName) == 0 {
+		panic("driver name not set")
 	}
 	return drvName
 }

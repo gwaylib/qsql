@@ -15,8 +15,8 @@ import (
 // Example for the second input:
 // fmt.Sprintf("select * from table_name where id=? in (%s)", qsql.StmtWhereIn(1,len(args))
 //
-func StmtWhereIn(paramIdx, paramsLen int, driverName ...string) string {
-	drvName := getDrvName(nil, driverName...)
+func stmtWhereIn(driverName string, paramIdx, paramsLen int) string {
+	drvName := getDrvName(nil, driverName)
 	switch drvName {
 	case DRV_NAME_ORACLE, _DRV_NAME_OCI8:
 		// *outputInputs = append(*outputInputs, []byte(fmt.Sprintf(":%s,", f.Name))...)

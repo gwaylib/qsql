@@ -17,6 +17,7 @@
 package qsql
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/gwaylib/errors"
@@ -86,7 +87,7 @@ func (p PageSql) FmtPage(args ...interface{}) PageSql {
 
 func (p *PageSql) QueryCount(db *DB, args ...interface{}) (int64, error) {
 	count := int64(0)
-	if err := QueryElem(db, &count, p.countSql, args...); err != nil {
+	if err := queryElem(db, context.TODO(), &count, p.countSql, args...); err != nil {
 		return 0, errors.As(err)
 	}
 	return count, nil
@@ -98,7 +99,7 @@ func (p *PageSql) QueryPageArr(db *DB, doCount bool, args *PageArgs) (int64, []s
 	if args.limit > 0 {
 		dataArgs = append(dataArgs, []interface{}{args.offset, args.limit}...)
 	}
-	titles, data, err := QueryPageArr(db, p.dataSql, dataArgs...)
+	titles, data, err := queryPageArr(db, context.TODO(), p.dataSql, dataArgs...)
 	if err != nil {
 		return total, nil, nil, errors.As(err)
 	} else if doCount {
@@ -117,7 +118,7 @@ func (p *PageSql) QueryPageMap(db *DB, doCount bool, args *PageArgs) (int64, []s
 	if args.limit > 0 {
 		dataArgs = append(dataArgs, []interface{}{args.offset, args.limit}...)
 	}
-	title, data, err := QueryPageMap(db, p.dataSql, dataArgs...)
+	title, data, err := queryPageMap(db, context.TODO(), p.dataSql, dataArgs...)
 	if err != nil {
 		return total, nil, nil, errors.As(err)
 	} else if doCount {

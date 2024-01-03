@@ -47,31 +47,6 @@ func Open(drvName, dsn string) (*DB, error) {
 	return newDB(drvName, db), nil
 }
 
-// Register a db to the connection pool by manully.
-func RegCache(iniFileName, sectionName string, db *DB) {
-	regCache(iniFileName, sectionName, db)
-}
-
-// Get the db instance from the cache.
-// If the db not in the cache, it will create a new instance from the ini file.
-func GetCache(iniFileName, sectionName string) *DB {
-	db, err := getCache(iniFileName, sectionName)
-	if err != nil {
-		panic(err)
-	}
-	return db
-}
-
-// Checking the cache does it have a db instance.
-func HasCache(etcFileName, sectionName string) (*DB, error) {
-	return getCache(etcFileName, sectionName)
-}
-
-// Close all instance in the cache.
-func CloseCache() {
-	closeCache()
-}
-
 // A lazy function to closed the io.Closer
 func Close(closer io.Closer) {
 	if closer == nil {
@@ -105,12 +80,11 @@ func Commit(tx *sql.Tx, fn func() error) error {
 }
 
 // Reflect one db data to the struct. the struct tag format like `db:"field_title"`, reference to: http://github.com/jmoiron/sqlx
-// When you no set the REFLECT_DRV_NAME, you can point out with the drvName
-func InsertStruct(exec Execer, obj interface{}, tbName string, drvName ...string) (sql.Result, error) {
-	return insertStruct(exec, context.TODO(), obj, tbName, drvName...)
+func InsertStruct(drvName string, exec Execer, obj interface{}, tbName string) (sql.Result, error) {
+	return insertStruct(exec, context.TODO(), obj, tbName, drvName)
 }
-func InsertStructContext(exec Execer, ctx context.Context, obj interface{}, tbName string, drvName ...string) (sql.Result, error) {
-	return insertStruct(exec, ctx, obj, tbName, drvName...)
+func InsertStructContext(drvName string, exec Execer, ctx context.Context, obj interface{}, tbName string) (sql.Result, error) {
+	return insertStruct(exec, ctx, obj, tbName, drvName)
 }
 
 // Relect the sql.Rows to a struct.
@@ -126,50 +100,54 @@ func ScanStructs(rows Rows, obj interface{}) error {
 }
 
 // Reflect the sql.Query result to a struct.
-func QueryStruct(db Queryer, obj interface{}, querySql string, args ...interface{}) error {
-	return queryStruct(db, context.TODO(), obj, querySql, args...)
+func QueryStruct(queryer Queryer, obj interface{}, querySql string, args ...interface{}) error {
+	return queryStruct(queryer, context.TODO(), obj, querySql, args...)
 }
-func QueryStructContext(db Queryer, ctx context.Context, obj interface{}, querySql string, args ...interface{}) error {
-	return queryStruct(db, ctx, obj, querySql, args...)
+func QueryStructContext(queryer Queryer, ctx context.Context, obj interface{}, querySql string, args ...interface{}) error {
+	return queryStruct(queryer, ctx, obj, querySql, args...)
 }
 
 // Reflect the sql.Query result to a struct array.
 // Return empty array if data not found.
-func QueryStructs(db Queryer, obj interface{}, querySql string, args ...interface{}) error {
-	return queryStructs(db, context.TODO(), obj, querySql, args...)
+func QueryStructs(queryer Queryer, obj interface{}, querySql string, args ...interface{}) error {
+	return queryStructs(queryer, context.TODO(), obj, querySql, args...)
 }
-func QueryStructsContext(db Queryer, ctx context.Context, obj interface{}, querySql string, args ...interface{}) error {
-	return queryStructs(db, ctx, obj, querySql, args...)
+func QueryStructsContext(queryer Queryer, ctx context.Context, obj interface{}, querySql string, args ...interface{}) error {
+	return queryStructs(queryer, ctx, obj, querySql, args...)
 }
 
 // Query one field to a sql.Scanner.
-func QueryElem(db Queryer, result interface{}, querySql string, args ...interface{}) error {
-	return queryElem(db, context.TODO(), result, querySql, args...)
+func QueryElem(queryer Queryer, result interface{}, querySql string, args ...interface{}) error {
+	return queryElem(queryer, context.TODO(), result, querySql, args...)
 }
-func QueryElemContext(db Queryer, ctx context.Context, result interface{}, querySql string, args ...interface{}) error {
-	return queryElem(db, ctx, result, querySql, args...)
+func QueryElemContext(queryer Queryer, ctx context.Context, result interface{}, querySql string, args ...interface{}) error {
+	return queryElem(queryer, ctx, result, querySql, args...)
 }
 
 // Query one field to a sql.Scanner array.
-func QueryElems(db Queryer, result interface{}, querySql string, args ...interface{}) error {
-	return queryElems(db, context.TODO(), result, querySql, args...)
+func QueryElems(queryer Queryer, result interface{}, querySql string, args ...interface{}) error {
+	return queryElems(queryer, context.TODO(), result, querySql, args...)
 }
-func QueryElemsContext(db Queryer, ctx context.Context, result interface{}, querySql string, args ...interface{}) error {
-	return queryElems(db, ctx, result, querySql, args...)
+func QueryElemsContext(queryer Queryer, ctx context.Context, result interface{}, querySql string, args ...interface{}) error {
+	return queryElems(queryer, ctx, result, querySql, args...)
 }
 
 // Reflect the query result to a string array.
-func QueryPageArr(db Queryer, querySql string, args ...interface{}) (titles []string, result [][]interface{}, err error) {
-	return queryPageArr(db, context.TODO(), querySql, args...)
+func QueryPageArr(queryer Queryer, querySql string, args ...interface{}) (titles []string, result [][]interface{}, err error) {
+	return queryPageArr(queryer, context.TODO(), querySql, args...)
 }
-func QueryPageArrContext(db Queryer, ctx context.Context, querySql string, args ...interface{}) (titles []string, result [][]interface{}, err error) {
-	return queryPageArr(db, ctx, querySql, args...)
+func QueryPageArrContext(queryer Queryer, ctx context.Context, querySql string, args ...interface{}) (titles []string, result [][]interface{}, err error) {
+	return queryPageArr(queryer, ctx, querySql, args...)
 }
 
 // Reflect the query result to a string map.
-func QueryPageMap(db Queryer, querySql string, args ...interface{}) (titles []string, result []map[string]interface{}, err error) {
-	return queryPageMap(db, context.TODO(), querySql, args...)
+func QueryPageMap(queryer Queryer, querySql string, args ...interface{}) (titles []string, result []map[string]interface{}, err error) {
+	return queryPageMap(queryer, context.TODO(), querySql, args...)
 }
-func QueryPageMapContext(db Queryer, ctx context.Context, querySql string, args ...interface{}) (titles []string, result []map[string]interface{}, err error) {
-	return queryPageMap(db, ctx, querySql, args...)
+func QueryPageMapContext(queryer Queryer, ctx context.Context, querySql string, args ...interface{}) (titles []string, result []map[string]interface{}, err error) {
+	return queryPageMap(queryer, ctx, querySql, args...)
+}
+
+func StmtWhereIn(drvName string, paramStartIdx, paramsLen int) string {
+	return stmtWhereIn(drvName, paramStartIdx, paramsLen)
 }
