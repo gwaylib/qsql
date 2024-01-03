@@ -1,3 +1,5 @@
+qsql is a supplement to the go sql package
+
 # Refere to:
 ```
 database/sql

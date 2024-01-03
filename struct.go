@@ -5,6 +5,7 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -85,9 +86,9 @@ func (d *DBData) Scan(i interface{}) error {
 	}
 	switch i.(type) {
 	case int64:
-		*d = DBData(fmt.Sprintf("%d", i))
+		*d = DBData(strconv.FormatInt(i.(int64), 10))
 	case float64:
-		*d = DBData(fmt.Sprint(i))
+		*d = DBData(strconv.FormatFloat(i.(float64), 'f', -1, 64))
 	case []byte:
 		*d = DBData(string(i.([]byte)))
 	case string:
