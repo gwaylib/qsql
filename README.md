@@ -63,16 +63,13 @@ mdb := db.GetCache("master")
 mdb := db.GetCache("master") 
 // or mdb = <sql.Tx>
 
-// row := mdb.QueryRow("SELECT * ...")
-row := qsql.QueryRow(mdb, "SELECT * ...")
+row := mdb.QueryRow("SELECT * ...")
 // ...
 
-// rows, err := mdb.Query("SELECT * ...")
-rows, err := qsql.Query(mdb, "SELECT * ...")
+rows, err := mdb.Query("SELECT * ...")
 // ...
 
-// result, err := mdb.Exec("UPDATE ...")
-result, err := qsql.Exec(mdb, "UPDATE ...")
+result, err := mdb.Exec("UPDATE ...")
 // ...
 ```
 
@@ -209,30 +206,21 @@ if err != nil {
 }
 ```
 
-## Make a MultiTx
+## Make a lazy tx commit
 ``` text
-multiTx := []*qsql.MultiTx{}
-multiTx = append(multiTx, qsql.NewMultiTx(
-    "UPDATE testing SET name = ? WHERE id = ?",
-    id,
-))
-multiTx = append(multiTx, qsql.NewMultiTx(
-    "UPDATE testing SET name = ? WHERE id = ?",
-    id,
-))
-
-// do exec multi tx
+// commit the tx
 mdb := db.GetCache("master") 
 tx, err := mdb.Begin()
 if err != nil{
     // ...
 }
-if err := qsql.ExecMutlTx(tx, multiTx); err != nil {
-    qsql.Rollback(tx)
-    // ...
+fn := func() error {
+  if err := tx.Exec("UPDATE testing SET name = ? WHERE id = ?", id); err != nil{
+    return err
+  }
+  return nil
 }
-if err := tx.Commit(); err != nil {
-    qsql.Rollback(tx)
+if err := qsql.Commit(tx, fn); err != nil {
     // ...
 }
 ```

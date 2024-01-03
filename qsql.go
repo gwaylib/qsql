@@ -10,15 +10,6 @@ import (
 	"github.com/jmoiron/sqlx/reflectx"
 )
 
-type MultiTx struct {
-	Query string
-	Args  []interface{}
-}
-
-func NewMultiTx(query string, args ...interface{}) *MultiTx {
-	return &MultiTx{query, args}
-}
-
 const (
 	addObjSql = "INSERT INTO %s (%s) VALUES (%s);"
 )
@@ -71,15 +62,6 @@ func insertStruct(exec Execer, ctx context.Context, obj interface{}, tbName stri
 		fields.AutoIncrement.Set(val)
 	}
 	return result, nil
-}
-
-func execMultiTx(tx *sql.Tx, ctx context.Context, mTx []*MultiTx) error {
-	for _, mt := range mTx {
-		if _, err := tx.ExecContext(ctx, mt.Query, mt.Args...); err != nil {
-			return errors.As(err)
-		}
-	}
-	return nil
 }
 
 // fieldsByName fills a values interface with fields from the passed value based

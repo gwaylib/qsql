@@ -19,7 +19,7 @@ func main() {
 	defer qsql.Close(mdb)
 
 	// create table
-	if _, err := qsql.Exec(mdb,
+	if _, err := mdb.Exec(
 		`CREATE TABLE user (
 		  "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
 		  "created_at" datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -30,7 +30,7 @@ func main() {
 	}
 
 	// std insert
-	if _, err := qsql.Exec(mdb, "INSERT INTO user(username,passwd)VALUES(?,?)", "t1", "t1"); err != nil {
+	if _, err := mdb.Exec("INSERT INTO user(username,passwd)VALUES(?,?)", "t1", "t1"); err != nil {
 		panic(err)
 	}
 
@@ -46,7 +46,7 @@ func main() {
 	// std query
 	var id int64
 	var username, passwd string
-	if err := qsql.QueryRow(mdb, "SELECT id, username, passwd FROM user WHERE username=?", "t1").Scan(&id, &username, &passwd); err != nil {
+	if err := mdb.QueryRow("SELECT id, username, passwd FROM user WHERE username=?", "t1").Scan(&id, &username, &passwd); err != nil {
 		panic(err)
 	}
 	if username != "t1" && passwd != "t1" {
@@ -124,24 +124,23 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	txUsers := []TestingUser{
-		{UserName: "t3", Passwd: "t3"},
-		{UserName: "t4", Passwd: "t4"},
-	}
-	for _, u := range txUsers {
-		if _, err := qsql.InsertStruct(tx, &u, "user"); err != nil {
-			println(errors.As(err))
-			qsql.Rollback(tx)
-			return
+	if err := qsql.Commit(tx, func() error {
+		txUsers := []TestingUser{
+			{UserName: "t3", Passwd: "t3"},
+			{UserName: "t4", Passwd: "t4"},
 		}
-	}
-	if err := tx.Commit(); err != nil {
-		println(errors.As(err))
-		qsql.Rollback(tx)
-		return
+		for _, u := range txUsers {
+			if _, err := qsql.InsertStruct(tx, &u, "user"); err != nil {
+				return errors.As(err)
+			}
+		}
+		return nil
+	}); err != nil {
+		panic(err)
 	}
 
 	// excute for stmt
+	// TODO: more stmt optimization
 	stmt, err := mdb.Prepare("SELECT COUNT(*) FROM user WHERE username=?")
 	count := 0
 	if err := stmt.QueryRow("t3").Scan(&count); err != nil {

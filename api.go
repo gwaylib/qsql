@@ -85,28 +85,23 @@ func Close(closer io.Closer) {
 
 // A lazy function to rollback the *sql.Tx
 func Rollback(tx *sql.Tx) {
-	err := tx.Rollback()
-
-	// roll back error is a serious error
-	if err != nil {
+	if err := tx.Rollback(); err != nil {
+		// roll back error is a serious error
 		log.Error(errors.As(err))
 	}
 }
 
-// A way implement the sql.Exec
-func Exec(db Execer, querySql string, args ...interface{}) (sql.Result, error) {
-	return db.Exec(querySql, args...)
-}
-func ExecContext(db Execer, ctx context.Context, querySql string, args ...interface{}) (sql.Result, error) {
-	return db.ExecContext(ctx, querySql, args...)
-}
-
-// A way to ran multiply tx
-func ExecMultiTx(tx *sql.Tx, mTx []*MultiTx) error {
-	return execMultiTx(tx, context.TODO(), mTx)
-}
-func ExecMultiTxContext(tx *sql.Tx, ctx context.Context, mTx []*MultiTx) error {
-	return execMultiTx(tx, ctx, mTx)
+// A lazy function to commit the *sql.Tx
+// if will auto commit when the function is nil error, or do a rollback and return the function error.
+func Commit(tx *sql.Tx, fn func() error) error {
+	if err := fn(); err != nil {
+		Rollback(tx)
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Reflect one db data to the struct. the struct tag format like `db:"field_title"`, reference to: http://github.com/jmoiron/sqlx
@@ -116,22 +111,6 @@ func InsertStruct(exec Execer, obj interface{}, tbName string, drvName ...string
 }
 func InsertStructContext(exec Execer, ctx context.Context, obj interface{}, tbName string, drvName ...string) (sql.Result, error) {
 	return insertStruct(exec, ctx, obj, tbName, drvName...)
-}
-
-// A sql.Query implements
-func Query(db Queryer, querySql string, args ...interface{}) (*sql.Rows, error) {
-	return db.Query(querySql, args...)
-}
-func QueryContext(db Queryer, ctx context.Context, querySql string, args ...interface{}) (*sql.Rows, error) {
-	return db.QueryContext(ctx, querySql, args...)
-}
-
-// A sql.QueryRow implements
-func QueryRow(db Queryer, querySql string, args ...interface{}) *sql.Row {
-	return db.QueryRow(querySql, args...)
-}
-func QueryRowContext(db Queryer, ctx context.Context, querySql string, args ...interface{}) *sql.Row {
-	return db.QueryRowContext(ctx, querySql, args...)
 }
 
 // Relect the sql.Rows to a struct.
