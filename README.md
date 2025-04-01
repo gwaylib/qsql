@@ -81,7 +81,7 @@ Call a cache
 mdb := qsql.GetCache("main")
 ```
 
-## Call standar sql
+## Call standard sql
 ``` text
 mdb := qsql.GetCache("main") 
 
