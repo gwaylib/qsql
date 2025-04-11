@@ -6,37 +6,24 @@ import (
 )
 
 func TestSqlBuilder(t *testing.T) {
-	sb := NewSqlBuilder("tmp tb1")
-	fmt.Println(sb.Select("*"))
+	sb := NewSqlBuilder(DRV_NAME_POSTGRES)
+	sb.Add("SELECT")
+	sb.AddTab(sb.Select("tb1.id", "count(*)"))
+	sb.Add("FROM")
+	sb.AddTab("tmp tb1")
+	sb.AddTab("INNER JOIN tmp1 tb2 ON tb2.id=tb2.tmp_id")
+	sb.Add("WHERE")
+	sb.AddTab("1=1")
+	sb.AddTabOk(false, "AND (1=?)", 0)
+	sb.AddTab("OR (tb1 IN (" + sb.In([]interface{}{1, 2}) + "))")
+	sb.Add("GROUP BY tb1.id")
+	sb.Add("HAVING count(*)>?", 1)
+	sb.Add("ORDER BY tb1.id DESC")
+	sb.Add("OFFSET ?", 1)
+	sb.Add("LIMIT ?", 1)
+	fmt.Println(sb)
 
-	sb.Joins("INNER JOIN tmp1 tb2 ON tb2.id=tb2.tmp_id")
-	fmt.Println(sb.Select("*"))
-
-	sb.Where("1=?", 0)
-	fmt.Println(sb.Select("*"))
-
-	sb.WhereOr("1=1")
-	fmt.Println(sb.Select("*"))
-
-	sb.GroupBy("tb1.id")
-	fmt.Println(sb.Select("*"))
-
-	sb.GroupBy("tb2.id")
-	fmt.Println(sb.Select("*"))
-
-	sb.Having("count(tb1.id)>?", 2)
-	fmt.Println(sb.Select("*"))
-
-	sb.Offset(0)
-	fmt.Println(sb.Select("*"))
-	sb.Offset(1)
-	fmt.Println(sb.Select("*"))
-
-	sb.Limit(0)
-	fmt.Println(sb.Select("*"))
-	sb.Limit(1)
-	fmt.Println(sb.Select("*"))
-
-	mTable, args := sb.Select("id")
-	fmt.Println(NewSqlBuilder("("+mTable+") tmp", args...).Select("*"))
+	sb1 := NewSqlBuilder(DRV_NAME_POSTGRES)
+	sb1.Add("SELECT * FROM ("+sb.String()+") tmp", sb1.Args())
+	fmt.Println(sb1)
 }
