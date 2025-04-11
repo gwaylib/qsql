@@ -260,7 +260,7 @@ func queryPageArr(db Queryer, ctx context.Context, querySql string, args ...inte
 	}
 
 	for rows.Next() {
-		r := makeDBData(len(titles))
+		r := MakeDBData(len(titles))
 		if err := rows.Scan(r...); err != nil {
 			return titles, result, errors.As(err, args)
 		}
@@ -287,7 +287,7 @@ func queryPageMap(db Queryer, ctx context.Context, querySql string, args ...inte
 
 	result := []map[string]interface{}{}
 	for rows.Next() {
-		r := makeDBData(len(titles))
+		r := MakeDBData(len(titles))
 		if err := rows.Scan(r...); err != nil {
 			return titles, []map[string]interface{}{}, errors.As(err, args)
 		}

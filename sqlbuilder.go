@@ -20,13 +20,6 @@ func NewSqlBuilder(drvName ...string) *SqlBuilder {
 	return b
 }
 
-func (b *SqlBuilder) String() string {
-	return b.buff.String()
-}
-func (b *SqlBuilder) Args() []interface{} {
-	return b.args
-}
-
 func (b *SqlBuilder) Add(key string, args ...interface{}) *SqlBuilder {
 	if len(key) > 0 {
 		b.buff.WriteString(key)
@@ -42,7 +35,7 @@ func (b *SqlBuilder) AddTab(key string, args ...interface{}) *SqlBuilder {
 	b.buff.WriteString("  ")
 	return b.Add(key, args)
 }
-func (b *SqlBuilder) AddTabOk(ok bool, key string, args ...interface{}) *SqlBuilder {
+func (b *SqlBuilder) AddTabOK(ok bool, key string, args ...interface{}) *SqlBuilder {
 	if !ok {
 		return b
 	}
@@ -57,17 +50,23 @@ func (b *SqlBuilder) In(in []interface{}) string {
 	return stmtIn(len(b.args)-1, len(in), b.drvName)
 }
 
+func (b *SqlBuilder) Args() []interface{} {
+	return b.args
+}
+
 func (b *SqlBuilder) Select(column ...string) string {
+	selectStr := "SELECT\n  "
 	if len(column) > 0 {
-		return strings.Join(column, ", ")
+		selectStr += strings.Join(column, ", ")
 	} else {
-		return "*"
+		selectStr += "*"
 	}
+	return selectStr + "\n" + b.buff.String()
 }
 func (b *SqlBuilder) SelectStruct(obj interface{}) string {
 	fields, err := reflectInsertStruct(obj, b.drvName)
 	if err != nil {
 		panic(err)
 	}
-	return fields.Names
+	return "SELECT\n  " + fields.Names + "\n" + b.buff.String()
 }
