@@ -148,6 +148,16 @@ func QueryPageMapContext(queryer Queryer, ctx context.Context, querySql string, 
 	return queryPageMap(queryer, ctx, querySql, args...)
 }
 
-func StmtWhereIn(drvName string, paramStartIdx, paramsLen int) string {
-	return stmtWhereIn(drvName, paramStartIdx, paramsLen)
+// Extend stmt for the where in
+//
+// Example for the first input:
+// fmt.Sprintf("select * from table_name where in (%s)", qsql.StmtWhereIn(0,len(args))
+// Or
+// fmt.Sprintf("select * from table_name where in (%s)", qsql.StmtWhereIn(0,len(args), qsql.DRV_NAME_MYSQL)
+//
+// Example for the second input:
+// fmt.Sprintf("select * from table_name where id=? in (%s)", qsql.StmtWhereIn(1,len(args))
+
+func StmtIn(paramStartIdx, paramsLen int, drvName ...string) string {
+	return stmtIn(paramStartIdx, paramsLen, drvName...)
 }

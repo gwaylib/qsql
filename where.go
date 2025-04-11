@@ -5,17 +5,11 @@ import (
 	"reflect"
 )
 
-// Extend the where in stmt
-//
-// Example for the first input:
-// fmt.Sprintf("select * from table_name where in (%s)", qsql.StmtWhereIn(0,len(args))
-// Or
-// fmt.Sprintf("select * from table_name where in (%s)", qsql.StmtWhereIn(0,len(args), qsql.DRV_NAME_MYSQL)
-//
-// Example for the second input:
-// fmt.Sprintf("select * from table_name where id=? in (%s)", qsql.StmtWhereIn(1,len(args))
-//
-func stmtWhereIn(driverName string, paramIdx, paramsLen int) string {
+func stmtIn(paramIdx, paramsLen int, driverNames ...string) string {
+	driverName := ""
+	if len(driverNames) > 0 {
+		driverName = driverNames[0]
+	}
 	drvName := getDrvName(nil, driverName)
 	switch drvName {
 	case DRV_NAME_ORACLE, _DRV_NAME_OCI8:

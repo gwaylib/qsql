@@ -107,8 +107,10 @@ func (db *DB) QueryPageMap(querySql string, args ...interface{}) (titles []strin
 func (db *DB) QueryPageMapContext(ctx context.Context, querySql string, args ...interface{}) (titles []string, result []map[string]interface{}, err error) {
 	return queryPageMap(db, ctx, querySql, args...)
 }
-func (db *DB) StmtWhereIn(paramStartIdx, paramsLen int) string {
-	return stmtWhereIn(db.DriverName(), paramStartIdx, paramsLen)
+
+// Return "?,?,?,?..." for default, or "@p1,@p2,@p3..." for mssql, or ":1,:2,:3..." for pgsql when paramStartIdx is 0.
+func (db *DB) StmtIn(paramStartIdx, paramsLen int) string {
+	return stmtIn(paramStartIdx, paramsLen, db.DriverName())
 }
 
 // A lazy function to commit the *sql.Tx
