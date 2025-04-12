@@ -44,14 +44,21 @@ func (b *SqlBuilder) SetIndent(indent string) *SqlBuilder {
 }
 
 func (b *SqlBuilder) Add(key string, args ...interface{}) *SqlBuilder {
-	if len(key) > 0 {
-		b.fromBuff.WriteString(b.indent)
-		b.fromBuff.WriteString(key)
+	if len(key) == 0 {
+		return b
 	}
+
+	b.fromBuff.WriteString(b.indent)
+	b.fromBuff.WriteString(key)
 	if len(args) > 0 {
 		b.args = append(b.args, args...)
 	}
 	return b
+}
+
+// recursive Add,  only format the code when coding
+func (b *SqlBuilder) AddTab(key string, args ...interface{}) *SqlBuilder {
+	return b.Add(key, args...)
 }
 
 func (b *SqlBuilder) AddIf(ok bool, key string, args ...interface{}) *SqlBuilder {
