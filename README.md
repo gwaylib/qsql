@@ -9,9 +9,9 @@ https://github.com/jmoiron/sqlx
 # Example:
 More example see the [example](./example) directory.
 
-## Using a manual cache
+## Directing use
 ``` text
-package db
+package main
 
 import (
 	"github.com/gwaylib/conf"
@@ -20,18 +20,20 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-func init() {
-    db, err := qsql.Open(qsql.DRV_NAME_MYSQL, dsn)
+func main() {
+    mdb, err := qsql.Open(qsql.DRV_NAME_MYSQL, dsn)
     if err != nil{
         panic(err)
     }
-    qsql.RegCache("main", db)
+    arr := make([]string, 3)
+    if err := mdb.QueryElems(&arr, "SELECT id, created_at, updated_at WHERE id=?", 1); err != nil{
+        panic(err)
+    }
 }
 ```
 
-
-## Using etc cache
-Assume that the configuration file path is: './etc/db.cfg'
+## Using ini cache
+the configuration file path like : './etc/db.cfg'
 
 The etc file content
 ```
@@ -49,7 +51,7 @@ dsn: username:passwd@tcp(127.0.0.1:3306)/log?timeout=30s&strict=true&loc=Local&p
 max_life_time:7200
 ```
 
-Make a package for connection cache with ini
+Make a package for cache.go with ini
 ``` text
 package db
 
@@ -61,6 +63,13 @@ import (
 
 func init() {
     qsql.RegCacheWithIni(conf.RootDir() + "/etc/db.cfg")
+
+    // Register cache without ini
+    // db, err := qsql.Open(qsql.DRV_NAME_MYSQL, dsn)
+    // if err != nil{
+    //     panic(err)
+    // }
+    // qsql.RegCache("main", db)
 }
 
 func GetCache(section string) *qsql.DB {
@@ -76,16 +85,33 @@ func CloseCache() {
 }
 ```
 
-Call a cache
+Using the cache package
 ``` text
-mdb := qsql.GetCache("main")
+package main
+
+import (
+	"github.com/gwaylib/conf"
+	"github.com/gwaylib/errors"
+	_ "github.com/go-sql-driver/mysql"
+
+    "model/db"
+)
+
+func main() {
+    mdb := db.GetCache("main")
+    arr := make([]string, 3)
+    if err := mdb.QueryElems(&arr, "SELECT id, created_at, updated_at WHERE id=?", 1); err != nil{
+        panic(err)
+    }
+}
 ```
 
-## Call standard sql
+## Standard sql
+*qsql.DB has implements *sql.DB, so you can call qsql.DB like *sql.DB
 ``` text
-mdb := qsql.GetCache("main") 
+mdb := db.GetCache("main") 
 
-row := mdb.QueryRow("SELECT * ...")
+row := mdb.QueryRow("SELECT * ...") // 
 // ...
 
 rows, err := mdb.Query("SELECT * ...")
@@ -95,7 +121,8 @@ result, err := mdb.Exec("UPDATE ...")
 // ...
 ```
 
-## Insert a struct to db(using reflect)
+## Insert struct(s) into table
+the struct tag format like `db:"field"`, reference to: http://github.com/jmoiron/sqlx
 ``` text
 type User struct{
     Id     int64  `db:"id,auto_increment"` // flag "autoincrement", "auto_increment" are supported .
@@ -104,7 +131,7 @@ type User struct{
 }
 
 func main() {
-    mdb := qsql.GetCache("main") 
+    mdb := db.GetCache("main") 
 
     var u = &User{
         Name:"testing",
@@ -119,8 +146,13 @@ func main() {
 
 ```
 
-## Quick query way
+## Quick sql way
 ``` text
+package main
+
+import (
+    gErrors "github.com/gwaylib/errors"
+)
 
 // Way 1: query result to a struct.
 type User struct{
@@ -129,66 +161,17 @@ type User struct{
 }
 
 func main() {
-    mdb := qsql.GetCache("main") 
+    mdb := db.GetCache("main") 
     var u = *User{}
-    if err := mdb.QueryStruct(u, "SELECT id, name FROM a WHERE id = ?", id)
-    if err != nil{
-        // sql.ErrNoRows has been replace by errors.ErrNoData
-        if errors.ErrNoData.Equal(err) {
+    if err := mdb.QueryStruct(u, "SELECT id, name FROM a WHERE id = ?", id); err != nil {
+        // sql.ErrNoRows has been replace by gErrors.ErrNoData
+        if gErrors.ErrNoData.Equal(err) {
            // no data
         }
         // ...
     }
     // ..
-    
-    // Way 2: query row to struct
-    mdb := qsql.GetCache("main") 
-    var u = *User{}
-    if err := mdb.ScanStruct(mdb.QueryRow("SELECT id, name FROM a WHERE id = ?", id), u); err != nil {
-        // sql.ErrNoRows has been replace by errors.ErrNoData
-        if errors.ErrNoData.Equal(err) {
-           // no data
-        }
-        // ...
-    }
-    
-    // Way 3: query result to structs
-    mdb := qsql.GetCache("main") 
-    var u = []*User{}
-    if err := mdb.QueryStructs(&u, "SELECT id, name FROM a WHERE id = ?", id); err != nil {
-        // ...
-    }
-    if len(u) == 0{
-        // data not found
-        // ...
-    }
-    // .. 
-    
-    // Way 4: query rows to structs
-    mdb := qsql.GetCache("main") 
-    rows, err := mdb.Query("SELECT id, name FROM a WHERE id = ?", id)
-    if err != nil {
-        // ...
-    }
-    defer qsql.Close(rows)
-    var u = []*User{}
-    if err := mdb.ScanStructs(rows, &u); err != nil{
-        // ...
-    }
-    if len(u) == 0{
-        // data not found
-        // ...
-    }
 
-}
-
-```
-
-## Query an element which is implemented sql.Scanner
-
-```text
-func main() {
-    mdb := qsql.GetCache("main") 
     count := 0
     if err := mdb.QueryElem(&count, "SELECT count(*) FROM a WHERE id = ?", id); err != nil{
         // sql.ErrNoRows has been replace by errors.ErrNoData
@@ -196,39 +179,6 @@ func main() {
            // no data
         }
         // ...
-    }
-}
-```
-## Extend the where in stmt
-```text
-// Example for the first input:
-func main() {
-    mdb := qsql.GetCache("main") 
-    args:=[]int{1,2,3}
-    mdb.Query(fmt.Sprintf("select * from table_name where in (%s)", mdb.StmtWhereIn(0, len(args))), qsql.StmtSliceArgs(args)...)
-    // Or
-    mdb.Query(fmt.Sprintf("select * from table_name where in (%s)", mdb.StmtWhereIn(0, len(args), qsql.DRV_NAME_MYSQL), qsql.StmtSliceArgs(args)...)
-    
-    // Example for the second input:
-    mdb.Query(fmt.Sprintf("select * from table_name where id=? in (%s)", qsql.StmtWhereIn(1,len(args)), qsql.StmtSliceArgs(id, args)...)
-}
-```
-
-## Mass query.
-```text
-func main() {
-    mdb := qsql.GetCache("main") 
-    qSql = &qsql.Page{
-         CountSql:`SELECT count(1) FROM user_info WHERE create_time >= ? AND create_time <= ?`,
-         DataSql:`SELECT mobile, balance FROM user_info WHERE create_time >= ? AND create_time <= ?`
-    }
-    count, titles, result, err := qSql.QueryPageArray(db, true, condition, 0, 10)
-    // ...
-    // Or
-    count, titles, result, err := qSql.QueryPageMap(db, true, condtion, 0, 10)
-    // ...
-    if err != nil {
-    // ...
     }
 }
 ```
@@ -248,8 +198,39 @@ func main() {
       }
       return nil
     }
-    if err := qsql.Commit(tx, fn); err != nil {
+    if err := mdb.Commit(tx, fn); err != nil {
         // ...
+    }
+}
+```
+
+## SqlBuilder
+```text
+func main() {
+    mdb := qsql.GetCache("main") 
+
+    id := 0
+    inIds := []interface{}{1,2}
+
+    bd := qsql.NewSqlBuilder(mdb.DriverName())
+    bd.Select("id", "created_at")
+    bd.Add("FROM")
+    bd.AddTab("tmp")
+    bd.Add("WHERE")
+    bd.AddTab("created_at BETWEEN ? AND ?", time.Now().AddDate(-1,0,0), time.Now())
+    bd.AddTabIf(len(inIds)>0, "AND id IN ("+bd.AddIn(inIds)+")", id)
+    titles, data, err := mdb.QueryPageArr(bd.String(), bd.Args()...) 
+    if err != nil {
+        panic(err)
+    }
+
+    updateBD := qsql.NewSqlBuilder(mdb.DriverName())
+    updateBD.Add("UPDATE tmp SET")
+    updateBD.AddTab("(updated_at=?,name=?)", time.Now())
+    updateDB.Add("WHERE")
+    updateDB.AddTab("id=?", id)
+    if _, err := mdb.Exec(updateDB.String(), updateDB.Args()...); err != nil{
+        panic(err)
     }
 }
 ```

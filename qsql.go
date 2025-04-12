@@ -87,7 +87,7 @@ func fieldsByTraversal(v reflect.Value, traversals [][]int, values []interface{}
 	return nil
 }
 
-func scanStruct(rows Rows, obj interface{}) error {
+func scanStruct(rows *sql.Rows, obj interface{}) error {
 	if obj == nil {
 		return errors.New("nil pointer passed to StructScan destination")
 	}
@@ -126,7 +126,7 @@ func scanStruct(rows Rows, obj interface{}) error {
 	direct.Set(v)
 	return nil
 }
-func scanStructs(rows Rows, obj interface{}) error {
+func scanStructs(rows *sql.Rows, obj interface{}) error {
 	if obj == nil {
 		return errors.New("nil pointer passed to StructScan destination")
 	}
@@ -293,12 +293,8 @@ func queryPageMap(db Queryer, ctx context.Context, querySql string, args ...inte
 			return titles, []map[string]interface{}{}, errors.As(err, args)
 		}
 		mData := map[string]interface{}{}
-		for i, name := range titles {
-			_, ok := mData[name]
-			if ok {
-				return titles, result, errors.New("Already exist column name").As(name)
-			}
-			mData[name] = r[i]
+		for i, title := range titles {
+			mData[title] = r[i]
 		}
 		result = append(result, mData)
 	}

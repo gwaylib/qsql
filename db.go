@@ -6,11 +6,17 @@ import (
 	"sync"
 )
 
+// qsql.DB Extendd sql.DB
+// and implement qsql.QuickQuery interface
 type DB struct {
 	*sql.DB
 	drvName string
 	isClose bool
 	mu      sync.Mutex
+}
+
+func _checkQuickSql() QuickSql {
+	return &DB{}
 }
 
 func newDB(drvName string, db *sql.DB) *DB {
@@ -40,40 +46,36 @@ func (db *DB) Close() error {
 }
 
 // Reflect one db data to the struct. the struct tag format like `db:"field_title"`, reference to: http://github.com/jmoiron/sqlx
-func (db *DB) InsertStruct(obj interface{}, tbName string) (sql.Result, error) {
-	return insertStruct(db, context.TODO(), obj, tbName, db.drvName)
+func (db *DB) InsertStruct(structPtr interface{}, tbName string) (sql.Result, error) {
+	return insertStruct(db, context.TODO(), structPtr, tbName, db.drvName)
 }
-func (db *DB) InsertStructContext(ctx context.Context, obj interface{}, tbName string) (sql.Result, error) {
-	return insertStruct(db, ctx, obj, tbName, db.drvName)
-}
-
-// Relect the sql.Rows to a struct.
-func (db *DB) ScanStruct(rows Rows, obj interface{}) error {
-	return scanStruct(rows, obj)
+func (db *DB) InsertStructContext(ctx context.Context, structPtr interface{}, tbName string) (sql.Result, error) {
+	return insertStruct(db, ctx, structPtr, tbName, db.drvName)
 }
 
-// Reflect the sql.Rows to a struct array.
+// Reflect the sql.Rows to []struct array.
 // Return empty array if data not found.
 // Refere to: github.com/jmoiron/sqlx
-func (db *DB) ScanStructs(rows Rows, obj interface{}) error {
-	return scanStructs(rows, obj)
+// DO NOT forget close the rows
+func (db *DB) ScanStructs(rows *sql.Rows, structsPtr interface{}) error {
+	return scanStructs(rows, structsPtr)
 }
 
 // Reflect the sql.Query result to a struct.
-func (db *DB) QueryStruct(obj interface{}, querySql string, args ...interface{}) error {
-	return queryStruct(db, context.TODO(), obj, querySql, args...)
+func (db *DB) QueryStruct(structPtr interface{}, querySql string, args ...interface{}) error {
+	return queryStruct(db, context.TODO(), structPtr, querySql, args...)
 }
-func (db *DB) QueryStructContext(ctx context.Context, obj interface{}, querySql string, args ...interface{}) error {
-	return queryStruct(db, ctx, obj, querySql, args...)
+func (db *DB) QueryStructContext(ctx context.Context, structPtr interface{}, querySql string, args ...interface{}) error {
+	return queryStruct(db, ctx, structPtr, querySql, args...)
 }
 
 // Reflect the sql.Query result to a struct array.
 // Return empty array if data not found.
-func (db *DB) QueryStructs(obj interface{}, querySql string, args ...interface{}) error {
-	return queryStructs(db, context.TODO(), obj, querySql, args...)
+func (db *DB) QueryStructs(structPtr interface{}, querySql string, args ...interface{}) error {
+	return queryStructs(db, context.TODO(), structPtr, querySql, args...)
 }
-func (db *DB) QueryStructsContext(ctx context.Context, obj interface{}, querySql string, args ...interface{}) error {
-	return queryStructs(db, ctx, obj, querySql, args...)
+func (db *DB) QueryStructsContext(ctx context.Context, structPtr interface{}, querySql string, args ...interface{}) error {
+	return queryStructs(db, ctx, structPtr, querySql, args...)
 }
 
 // Query one field to a sql.Scanner.
@@ -108,8 +110,9 @@ func (db *DB) QueryPageMapContext(ctx context.Context, querySql string, args ...
 	return queryPageMap(db, ctx, querySql, args...)
 }
 
-// Return "?,?,?,?..." for default, or "@p1,@p2,@p3..." for mssql, or ":1,:2,:3..." for pgsql when paramStartIdx is 0.
-func (db *DB) StmtIn(paramStartIdx, paramsLen int) string {
+// Return "?,?,?,?..." for default, or "@p1,@p2,@p3..." for mssql, or ":1,:2,:3..." for pgsql.
+// paramStartIdx default is 0, but you need count it when the driver is mssq, pgsql etc. .
+func (db *DB) MakeStmtIn(paramStartIdx, paramsLen int) string {
 	return stmtIn(paramStartIdx, paramsLen, db.DriverName())
 }
 

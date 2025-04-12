@@ -7,8 +7,8 @@ import (
 type SqlBuilder struct {
 	drvName string
 
-	selectStr string
-	fromBuff  strings.Builder
+	queryStr string
+	fromBuff strings.Builder
 
 	args []interface{}
 
@@ -29,10 +29,10 @@ func NewSqlBuilder(drvName ...string) *SqlBuilder {
 
 func (b *SqlBuilder) Copy() *SqlBuilder {
 	n := &SqlBuilder{
-		drvName:   b.drvName,
-		selectStr: b.selectStr,
-		args:      make([]interface{}, len(b.args)),
-		indent:    b.indent,
+		drvName:  b.drvName,
+		queryStr: b.queryStr,
+		args:     make([]interface{}, len(b.args)),
+		indent:   b.indent,
 	}
 	copy(n.args, b.args)
 	n.fromBuff.WriteString(b.fromBuff.String())
@@ -48,8 +48,8 @@ func (b *SqlBuilder) Add(key string, args ...interface{}) *SqlBuilder {
 		return b
 	}
 
-	b.fromBuff.WriteString(b.indent)
 	b.fromBuff.WriteString(key)
+	b.fromBuff.WriteString(b.indent)
 	if len(args) > 0 {
 		b.args = append(b.args, args...)
 	}
@@ -77,10 +77,11 @@ func (b *SqlBuilder) AddIn(in []interface{}) string {
 }
 
 func (b *SqlBuilder) Select(column ...string) *SqlBuilder {
+	b.queryStr = "SELECT" + b.indent
 	if len(column) > 0 {
-		b.selectStr = strings.Join(column, ", ")
+		b.queryStr += strings.Join(column, ",")
 	} else {
-		b.selectStr = "*"
+		b.queryStr += "*"
 	}
 	return b
 }
@@ -89,13 +90,14 @@ func (b *SqlBuilder) SelectStruct(obj interface{}) *SqlBuilder {
 	if err != nil {
 		panic(err)
 	}
-	b.selectStr = strings.Join(fields.Names, ", ")
-	return b
+	return b.Select(fields.Names...)
 }
 
 func (b *SqlBuilder) String() string {
-	return "SELECT" + b.indent + b.selectStr +
-		b.fromBuff.String()
+	if len(b.queryStr) > 0 {
+		return strings.TrimSuffix(b.queryStr+b.indent+b.fromBuff.String(), b.indent)
+	}
+	return strings.TrimSuffix(b.fromBuff.String(), b.indent)
 }
 
 func (b *SqlBuilder) Args() []interface{} {
