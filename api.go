@@ -26,12 +26,65 @@ type Queryer interface {
 	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
 }
 
-type Rows interface {
-	Close() error
-	Columns() ([]string, error)
-	Err() error
-	Next() bool
-	Scan(...interface{}) error
+type QuickSql interface {
+	DriverName() string
+
+	// Insert a struct data into tbName
+	//
+	// Reflect one db data to the struct.
+	// the struct tag format like `db:"field_title"`, reference to: http://github.com/jmoiron/sqlx
+	//
+	InsertStruct(structPtr interface{}, tbName string) (sql.Result, error)
+	InsertStructContext(ctx context.Context, structPtr interface{}, tbName string) (sql.Result, error)
+
+	// Scan the rows result to []struct
+	// Reflect the sql.Rows to a struct array.
+	// Return empty array if data not found.
+	// Refere to: github.com/jmoiron/sqlx
+	// DOT NOT forget close the rows after called.
+	ScanStructs(rows *sql.Rows, structsPtr interface{}) error
+
+	// Query db data to a struct
+	QueryStruct(structPrt interface{}, querySql string, args ...interface{}) error
+	QueryStructContext(ctx context.Context, structPrt interface{}, querySql string, args ...interface{}) error
+	// Query db data to []struct
+	QueryStructs(structsPrt interface{}, querySql string, args ...interface{}) error
+	QueryStructsContext(ctx context.Context, structsPrt interface{}, querySql string, args ...interface{}) error
+
+	// Query a element data like int, string.
+	// Same as row.Scan(&e)
+	QueryElem(ePtr interface{}, querySql string, args ...interface{}) error
+	QueryElemContext(ctx context.Context, ePtr interface{}, querySql string, args ...interface{}) error
+	// Query elements data like []int, []string in result.
+	QueryElems(ePtr interface{}, querySql string, args ...interface{}) error
+	QueryElemsContext(ctx context.Context, ePtr interface{}, querySql string, args ...interface{}) error
+
+	// Query a page data to array.
+	// the result data is [][]*string but no nil *string pointer instance.
+	QueryPageArr(querySql string, args ...interface{}) (titles []string, result [][]interface{}, err error)
+	QueryPageArrContext(ctx context.Context, querySql string, args ...interface{}) (titles []string, result [][]interface{}, err error)
+
+	// Query a page data to map, NOT RECOMMENED to use when there is a large page data.
+	// the result data is []map[string]*string but no nil *string pointer instance.
+	QueryPageMap(querySql string, args ...interface{}) (titles []string, result []map[string]interface{}, err error)
+	QueryPageMapContext(ctx context.Context, querySql string, args ...interface{}) (titles []string, result []map[string]interface{}, err error)
+
+	// Extend stmt for the where in
+	// paramStartIdx default is 0, but you need count it when the driver is mssq, pgsql etc. .
+	//
+	// Example for the first input:
+	// fmt.Sprintf("select * from table_name where in (%s)", qsql.StmtWhereIn(0,len(args))
+	// Or
+	// fmt.Sprintf("select * from table_name where in (%s)", qsql.StmtWhereIn(0,len(args), qsql.DRV_NAME_MYSQL)
+	//
+	// Example for the second input:
+	// fmt.Sprintf("select * from table_name where id=? in (%s)", qsql.StmtWhereIn(1,len(args))
+	//
+	// Return "?,?,?,?..." for default, or "@p1,@p2,@p3..." for mssql, or ":1,:2,:3..." for pgsql when paramStartIdx is 0.
+	MakeStmtIn(paramStartIdx, paramLen int) string
+
+	// auto commit when the func is return nil, or auto rollback when the func is error
+	Commit(tx *sql.Tx, fn func() error) error
 }
 
 func NewDB(drvName string, db *sql.DB) *DB {
@@ -67,7 +120,6 @@ func Rollback(tx *sql.Tx) {
 }
 
 // A lazy function to commit the *sql.Tx
-// if will auto commit when the function is nil error, or do a rollback and return the function error.
 func Commit(tx *sql.Tx, fn func() error) error {
 	if err := fn(); err != nil {
 		Rollback(tx)
@@ -79,7 +131,6 @@ func Commit(tx *sql.Tx, fn func() error) error {
 	return nil
 }
 
-// Reflect one db data to the struct. the struct tag format like `db:"field_title"`, reference to: http://github.com/jmoiron/sqlx
 func InsertStruct(drvName string, exec Execer, obj interface{}, tbName string) (sql.Result, error) {
 	return insertStruct(exec, context.TODO(), obj, tbName, drvName)
 }
@@ -87,19 +138,10 @@ func InsertStructContext(drvName string, exec Execer, ctx context.Context, obj i
 	return insertStruct(exec, ctx, obj, tbName, drvName)
 }
 
-// Relect the sql.Rows to a struct.
-func ScanStruct(rows Rows, obj interface{}) error {
-	return scanStruct(rows, obj)
-}
-
-// Reflect the sql.Rows to a struct array.
-// Return empty array if data not found.
-// Refere to: github.com/jmoiron/sqlx
-func ScanStructs(rows Rows, obj interface{}) error {
+func ScanStructs(rows *sql.Rows, obj interface{}) error {
 	return scanStructs(rows, obj)
 }
 
-// Reflect the sql.Query result to a struct.
 func QueryStruct(queryer Queryer, obj interface{}, querySql string, args ...interface{}) error {
 	return queryStruct(queryer, context.TODO(), obj, querySql, args...)
 }
@@ -107,8 +149,6 @@ func QueryStructContext(queryer Queryer, ctx context.Context, obj interface{}, q
 	return queryStruct(queryer, ctx, obj, querySql, args...)
 }
 
-// Reflect the sql.Query result to a struct array.
-// Return empty array if data not found.
 func QueryStructs(queryer Queryer, obj interface{}, querySql string, args ...interface{}) error {
 	return queryStructs(queryer, context.TODO(), obj, querySql, args...)
 }
@@ -116,7 +156,6 @@ func QueryStructsContext(queryer Queryer, ctx context.Context, obj interface{}, 
 	return queryStructs(queryer, ctx, obj, querySql, args...)
 }
 
-// Query one field to a sql.Scanner.
 func QueryElem(queryer Queryer, result interface{}, querySql string, args ...interface{}) error {
 	return queryElem(queryer, context.TODO(), result, querySql, args...)
 }
@@ -124,7 +163,6 @@ func QueryElemContext(queryer Queryer, ctx context.Context, result interface{}, 
 	return queryElem(queryer, ctx, result, querySql, args...)
 }
 
-// Query one field to a sql.Scanner array.
 func QueryElems(queryer Queryer, result interface{}, querySql string, args ...interface{}) error {
 	return queryElems(queryer, context.TODO(), result, querySql, args...)
 }
@@ -132,7 +170,6 @@ func QueryElemsContext(queryer Queryer, ctx context.Context, result interface{},
 	return queryElems(queryer, ctx, result, querySql, args...)
 }
 
-// Reflect the query result to a string array.
 func QueryPageArr(queryer Queryer, querySql string, args ...interface{}) (titles []string, result [][]interface{}, err error) {
 	return queryPageArr(queryer, context.TODO(), querySql, args...)
 }
@@ -140,23 +177,12 @@ func QueryPageArrContext(queryer Queryer, ctx context.Context, querySql string, 
 	return queryPageArr(queryer, ctx, querySql, args...)
 }
 
-// Reflect the query result to a string map.
 func QueryPageMap(queryer Queryer, querySql string, args ...interface{}) (titles []string, result []map[string]interface{}, err error) {
 	return queryPageMap(queryer, context.TODO(), querySql, args...)
 }
 func QueryPageMapContext(queryer Queryer, ctx context.Context, querySql string, args ...interface{}) (titles []string, result []map[string]interface{}, err error) {
 	return queryPageMap(queryer, ctx, querySql, args...)
 }
-
-// Extend stmt for the where in
-//
-// Example for the first input:
-// fmt.Sprintf("select * from table_name where in (%s)", qsql.StmtWhereIn(0,len(args))
-// Or
-// fmt.Sprintf("select * from table_name where in (%s)", qsql.StmtWhereIn(0,len(args), qsql.DRV_NAME_MYSQL)
-//
-// Example for the second input:
-// fmt.Sprintf("select * from table_name where id=? in (%s)", qsql.StmtWhereIn(1,len(args))
 
 func StmtIn(paramStartIdx, paramsLen int, drvName ...string) string {
 	return stmtIn(paramStartIdx, paramsLen, drvName...)

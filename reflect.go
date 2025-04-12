@@ -24,26 +24,17 @@ var refxM = reflectx.NewMapperTagFunc("db", func(in string) string {
 })
 
 // return is it a auto_increment field
-func travelStructField(f *reflectx.FieldInfo, v *reflect.Value, order *int, drvName *string, outputNames *[]byte, outputInputs *[]byte, outputVals *[]interface{}) *reflect.Value {
-	*order += 1
+func _travelStructField(f *reflectx.FieldInfo, v *reflect.Value, drvName *string, fieldIdx *int, selectNames *[]string, stmtParams *[]string, scanVals *[]interface{}) *reflect.Value {
+	*fieldIdx += 1
 	switch v.Kind() {
 	case reflect.Invalid:
 		// nil value
 		return nil
 	case
 		reflect.Bool,
-		reflect.Int,
-		reflect.Int8,
-		reflect.Int16,
-		reflect.Int32,
-		reflect.Int64,
-		reflect.Uint,
-		reflect.Uint8,
-		reflect.Uint16,
-		reflect.Uint32,
-		reflect.Uint64,
-		reflect.Float32,
-		reflect.Float64,
+		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
+		reflect.Float32, reflect.Float64,
 		reflect.String:
 		// continue
 		break
@@ -64,11 +55,9 @@ func travelStructField(f *reflectx.FieldInfo, v *reflect.Value, order *int, drvN
 					continue
 				}
 				fieldVal := reflect.Indirect(*v).Field(i)
-				autoFiled := travelStructField(
-					child,
-					&fieldVal,
-					order, drvName,
-					outputNames, outputInputs, outputVals,
+				autoFiled := _travelStructField(
+					child, &fieldVal, drvName,
+					fieldIdx, selectNames, stmtParams, scanVals,
 				)
 				if autoFiled != nil {
 					autoIncrement = autoFiled
@@ -101,35 +90,36 @@ func travelStructField(f *reflectx.FieldInfo, v *reflect.Value, order *int, drvN
 		return v
 	}
 
-	*outputVals = append(*outputVals, v.Interface())
 	switch *drvName {
 	case DRV_NAME_ORACLE, _DRV_NAME_OCI8:
-		*order += 1
-		*outputNames = append(*outputNames, []byte("\""+f.Name+"\",")...)
-		*outputInputs = append(*outputInputs, []byte(fmt.Sprintf(":%s,", f.Name))...)
+		*fieldIdx += 1
+		*selectNames = append(*selectNames, "\""+f.Name+"\"")
+		*stmtParams = append(*stmtParams, fmt.Sprintf(":%s", f.Name))
 	case DRV_NAME_POSTGRES:
-		*outputNames = append(*outputNames, []byte("\""+f.Name+"\",")...)
-		*outputInputs = append(*outputInputs, []byte(fmt.Sprintf(":%d,", *order))...)
-		*order += 1
+		*selectNames = append(*selectNames, "\""+f.Name+"\"")
+		*stmtParams = append(*stmtParams, fmt.Sprintf(":%d", *fieldIdx))
+		*fieldIdx += 1
 	case DRV_NAME_SQLSERVER, _DRV_NAME_MSSQL:
-		*outputNames = append(*outputNames, []byte("["+f.Name+"],")...)
-		*outputInputs = append(*outputInputs, []byte(fmt.Sprintf("@p%d,", *order))...)
-		*order += 1
+		*selectNames = append(*selectNames, "["+f.Name+"]")
+		*stmtParams = append(*stmtParams, fmt.Sprintf("@p%d", *fieldIdx))
+		*fieldIdx += 1
 	case DRV_NAME_MYSQL:
-		*order += 1
-		*outputNames = append(*outputNames, []byte("`"+f.Name+"`,")...)
-		*outputInputs = append(*outputInputs, []byte("?,")...)
+		*fieldIdx += 1
+		*selectNames = append(*selectNames, "`"+f.Name+"`")
+		*stmtParams = append(*stmtParams, "?")
 	default:
-		*outputNames = append(*outputNames, []byte("\""+f.Name+"\",")...)
-		*outputInputs = append(*outputInputs, []byte("?,")...)
+		*selectNames = append(*selectNames, "\""+f.Name+"\"")
+		*stmtParams = append(*stmtParams, "?")
 	}
+	*scanVals = append(*scanVals, v.Interface())
 
+	// recursive end by nil
 	return nil
 }
 
 type reflectInsertField struct {
-	Names  string
-	Stmts  string
+	Names  []string
+	Stmts  []string
 	Values []interface{}
 
 	AutoIncrement *reflect.Value
@@ -154,13 +144,13 @@ func reflectInsertStruct(i interface{}, drvName string) (*reflectInsertField, er
 
 	tm := refxM.TypeMap(v.Type())
 
-	names := []byte{}
-	inputs := []byte{}
-	vals := []interface{}{}
+	outputSelectNames := []string{}
+	outputStmtParams := []string{}
+	outputFieldVals := []interface{}{}
 	var autoIncrement *reflect.Value
 
 	childrenLen := len(tm.Tree.Children)
-	order := 0
+	fieldIdx := 0
 	for i := 0; i < childrenLen; i++ {
 		field := tm.Tree.Children[i]
 		if field == nil {
@@ -169,19 +159,23 @@ func reflectInsertStruct(i interface{}, drvName string) (*reflectInsertField, er
 		}
 
 		fieldVal := v.Field(i)
-		autoField := travelStructField(field, &fieldVal, &order, &drvName, &names, &inputs, &vals)
+		autoField := _travelStructField(
+			field, &fieldVal, &drvName,
+			&fieldIdx,
+			&outputSelectNames, &outputStmtParams, &outputFieldVals,
+		)
 		if autoField != nil {
 			autoIncrement = autoField
 		}
 	}
 
-	if len(names) == 0 {
+	if len(outputSelectNames) == 0 {
 		panic("No public field in struct")
 	}
 	return &reflectInsertField{
-		Names:         string(names[:len(names)-1]),
-		Stmts:         string(inputs[:len(inputs)-1]),
-		Values:        vals,
+		Names:         outputSelectNames,
+		Stmts:         outputStmtParams,
+		Values:        outputFieldVals,
 		AutoIncrement: autoIncrement,
 	}, nil
 }
