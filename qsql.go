@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/gwaylib/errors"
 	"github.com/jmoiron/sqlx/reflectx"
@@ -23,7 +24,7 @@ func insertStruct(exec Execer, ctx context.Context, obj interface{}, tbName stri
 	if err != nil {
 		return nil, errors.As(err)
 	}
-	execSql := fmt.Sprintf(addObjSql, tbName, fields.Names, fields.Stmts)
+	execSql := fmt.Sprintf(addObjSql, tbName, strings.Join(fields.Names, ", "), strings.Join(fields.Stmts, ", "))
 	// log.Debugf("%s%+v", execSql, vals)
 	result, err := exec.ExecContext(ctx, execSql, fields.Values...)
 	if err != nil {

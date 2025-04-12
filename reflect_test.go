@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 )
@@ -50,10 +51,10 @@ func TestReflect(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if refVal.Names != "`a`,`time`,`data`,`byte`,`dbdata`,`null_string`,`C`" {
+	if strings.Join(refVal.Names, ",") != "`a`,`time`,`data`,`byte`,`dbdata`,`null_string`,`C`" {
 		t.Fatal(refVal.Names)
 	}
-	if refVal.Stmts != "?,?,?,?,?,?,?" {
+	if strings.Join(refVal.Stmts, ",") != "?,?,?,?,?,?,?" {
 		t.Fatal(refVal.Stmts)
 	}
 	if len(refVal.Values) != 7 {
@@ -74,10 +75,10 @@ func TestReflect(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if refVal.Names != "`id`,`a`,`C`" {
+	if strings.Join(refVal.Names, ",") != "`id`,`a`,`C`" {
 		t.Fatal(refVal.Names)
 	}
-	if refVal.Stmts != "?,?,?" {
+	if strings.Join(refVal.Stmts, ",") != "?,?,?" {
 		t.Fatal(refVal.Stmts)
 	}
 	if len(refVal.Values) != 3 {
@@ -96,10 +97,10 @@ func TestReflect(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if refVal.Names != `"a","time","data","byte","dbdata","null_string","C","d","id","a","C","e"` {
+	if strings.Join(refVal.Names, ",") != `"a","time","data","byte","dbdata","null_string","C","d","id","a","C","e"` {
 		t.Fatal(refVal.Names)
 	}
-	if refVal.Stmts != ":a,:time,:data,:byte,:dbdata,:null_string,:C,:d,:id,:a,:C,:e" {
+	if strings.Join(refVal.Stmts, ",") != ":a,:time,:data,:byte,:dbdata,:null_string,:C,:d,:id,:a,:C,:e" {
 		t.Fatal(refVal.Stmts)
 	}
 	if fmt.Sprintf("%+v", refVal.Values) != `[100 0001-01-01 00:00:00 +0000 UTC [97 98 99] 0  {String: Valid:false} testing d 1 101 testing1 e]` {
