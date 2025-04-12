@@ -1,132 +1,69 @@
-//
 // Example:
 //
-// qSql = &qsql.Page{
-//      CountSql:`SELECT count(1) FROM user_info WHERE create_time >= ? AND create_time <= ?`,
-//      DataSql:`SELECT mobile, balance FROM user_info WHERE create_time >= ? AND create_time <= ?`
-// }
-// count, titles, result, err := qSql.QueryPageArray(db, true, condition, 0, 10)
+// mdb := db.GetCache("main")
+//
+// // count sql
+// cbd := NewSqlBuilder(mdb.DriverName())
+// cbd.Select("COUNT(*)")
+// cbd.Add("FROM tmp")
+// cbd.Add("WHERE")
+// cbd.AddTab("create_at BETWEEN ? AND ?", time.Now().AddDate(-1,0,0), time.Now())
+//
+// // copy condition
+// qbd := cbd.Copy()
+// qbd.Select("id", "created_at", "name")
+// qbd.Add("OFFSET ?", 0)
+// qbd.Add("LIMIT ?", 20)
+//
+// pSql := NewPageSql(cbd, qbd)
+// count, err := pSql.QueryCount(db)
 // ...
 // Or
-// count, titles, result, err := qSql.QueryPageMap(db, true, condtion, 0, 10)
+// titles, result, err := pSql.QueryPageArray(db)
 // ...
-// if err != nil {
+// Or
+// titles, result, err := pSql.QueryPageMap(db)
 // ...
-// }
-//
 package qsql
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/gwaylib/errors"
 )
 
-type PageArgs struct {
-	args   []interface{}
-	offset int64
-	limit  int64
-}
-
-func NewPageArgs(args ...interface{}) *PageArgs {
-	return &PageArgs{
-		args: args,
-	}
-}
-
-// using offset and limit when limit is set.
-func (p *PageArgs) Limit(offset, limit int64) *PageArgs {
-	p.offset = offset
-	p.limit = limit
-	return p
-}
-
 type PageSql struct {
-	countSql string
-	dataSql  string
+	countBD *SqlBuilder
+	queryBD *SqlBuilder
 }
 
-func NewPageSql(countSql, dataSql string) *PageSql {
-	if len(countSql) == 0 {
-		panic("countSql not set")
-	}
-	if len(dataSql) == 0 {
-		panic("dataSql not set")
-	}
+func NewPageSql(countBD, queryBD *SqlBuilder) *PageSql {
 	return &PageSql{
-		countSql: countSql,
-		dataSql:  dataSql,
+		countBD: countBD,
+		queryBD: queryBD,
 	}
 }
 
-func (p PageSql) CountSql() string {
-	return p.countSql
-}
-func (p PageSql) DataSql() string {
-	return p.dataSql
-}
-
-// fill the page sql with fmt arg, and return a new page
-// Typically used for table name formatting
-func (p PageSql) FmtPage(args ...interface{}) PageSql {
-	countSql := p.countSql
-	if len(countSql) > 0 {
-		countSql = fmt.Sprintf(p.countSql, args...)
-	}
-	dataSql := p.dataSql
-	if len(dataSql) > 0 {
-		dataSql = fmt.Sprintf(p.dataSql, args...)
-	}
-
-	return PageSql{
-		countSql: countSql,
-		dataSql:  dataSql,
-	}
-}
-
-func (p *PageSql) QueryCount(db *DB, args ...interface{}) (int64, error) {
+func (p *PageSql) QueryCount(db *DB) (int64, error) {
 	count := int64(0)
-	if err := queryElem(db, context.TODO(), &count, p.countSql, args...); err != nil {
+	if err := queryElem(db, context.TODO(), &count, p.countBD.String(), p.countBD.Args()...); err != nil {
 		return 0, errors.As(err)
 	}
 	return count, nil
 }
 
-func (p *PageSql) QueryPageArr(db *DB, doCount bool, args *PageArgs) (int64, []string, [][]interface{}, error) {
-	total := int64(0)
-	dataArgs := args.args
-	if args.limit > 0 {
-		dataArgs = append(dataArgs, []interface{}{args.offset, args.limit}...)
-	}
-	titles, data, err := queryPageArr(db, context.TODO(), p.dataSql, dataArgs...)
+func (p *PageSql) QueryPageArr(db *DB) ([]string, [][]interface{}, error) {
+	titles, data, err := queryPageArr(db, context.TODO(), p.queryBD.String(), p.queryBD.Args()...)
 	if err != nil {
-		return total, nil, nil, errors.As(err)
-	} else if doCount {
-		count, err := p.QueryCount(db, args.args...)
-		if err != nil {
-			return total, nil, nil, errors.As(err)
-		}
-		total = count
+		return nil, nil, errors.As(err)
 	}
-	return total, titles, data, nil
+	return titles, data, nil
 }
 
-func (p *PageSql) QueryPageMap(db *DB, doCount bool, args *PageArgs) (int64, []string, []map[string]interface{}, error) {
-	total := int64(0)
-	dataArgs := args.args
-	if args.limit > 0 {
-		dataArgs = append(dataArgs, []interface{}{args.offset, args.limit}...)
-	}
-	title, data, err := queryPageMap(db, context.TODO(), p.dataSql, dataArgs...)
+func (p *PageSql) QueryPageMap(db *DB) ([]string, []map[string]interface{}, error) {
+	titles, data, err := queryPageMap(db, context.TODO(), p.queryBD.String(), p.queryBD.Args()...)
 	if err != nil {
-		return total, nil, nil, errors.As(err)
-	} else if doCount {
-		count, err := p.QueryCount(db, args.args...)
-		if err != nil {
-			return total, nil, nil, errors.As(err)
-		}
-		total = count
+		return nil, nil, errors.As(err)
 	}
-	return total, title, data, nil
+	return titles, data, nil
 }
