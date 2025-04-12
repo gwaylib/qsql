@@ -68,7 +68,7 @@ func (b *SqlBuilder) AddIf(ok bool, key string, args ...interface{}) *SqlBuilder
 	return b.Add(key, args...)
 }
 
-func (b *SqlBuilder) In(in []interface{}) string {
+func (b *SqlBuilder) AddIn(in []interface{}) string {
 	if len(in) == 0 {
 		panic("need arguments of in condition")
 	}
@@ -103,5 +103,6 @@ func (b *SqlBuilder) Args() []interface{} {
 }
 
 func (b *SqlBuilder) Sql() []interface{} {
-	return append([]interface{}{b.String()}, b.args...)
+	result := []interface{}{b.String()}
+	return append(result, b.args...)
 }
