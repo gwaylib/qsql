@@ -2,7 +2,6 @@ package qsql
 
 import (
 	"fmt"
-	"reflect"
 )
 
 func stmtIn(paramIdx, paramsLen int, driverNames ...string) string {
@@ -45,21 +44,4 @@ func stmtIn(paramIdx, paramsLen int, driverNames ...string) string {
 		}
 		return string(result)
 	}
-}
-
-func StmtSliceArgs(args ...interface{}) []interface{} {
-	result := []interface{}{}
-	for _, arg := range args {
-		val := reflect.ValueOf(arg)
-		switch val.Kind() {
-		case reflect.Array, reflect.Slice:
-			arrLen := val.Len()
-			for i := 0; i < arrLen; i++ {
-				result = append(result, val.Index(i).Interface())
-			}
-		default:
-			result = append(result, arg)
-		}
-	}
-	return result
 }
