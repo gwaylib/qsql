@@ -81,7 +81,7 @@ type QuickSql interface {
 	// fmt.Sprintf("select * from table_name where id=? in (%s)", qsql.StmtWhereIn(1,len(args))
 	//
 	// Return "?,?,?,?..." for default, or "@p1,@p2,@p3..." for mssql, or ":1,:2,:3..." for pgsql when paramStartIdx is 0.
-	MakeStmtIn(paramStartIdx, paramLen int) string
+	StmtIn(paramStartIdx, paramLen int) string
 
 	// auto commit when the func is return nil, or auto rollback when the func is error
 	Commit(tx *sql.Tx, fn func() error) error

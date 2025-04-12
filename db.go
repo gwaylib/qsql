@@ -112,7 +112,7 @@ func (db *DB) QueryPageMapContext(ctx context.Context, querySql string, args ...
 
 // Return "?,?,?,?..." for default, or "@p1,@p2,@p3..." for mssql, or ":1,:2,:3..." for pgsql.
 // paramStartIdx default is 0, but you need count it when the driver is mssq, pgsql etc. .
-func (db *DB) MakeStmtIn(paramStartIdx, paramsLen int) string {
+func (db *DB) StmtIn(paramStartIdx, paramsLen int) string {
 	return stmtIn(paramStartIdx, paramsLen, db.DriverName())
 }
 
