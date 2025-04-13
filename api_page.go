@@ -1,29 +1,3 @@
-// Example:
-//
-// mdb := db.GetCache("main")
-//
-// // count sql
-// cbd := NewSqlBuilder(mdb.DriverName())
-// cbd.Select("COUNT(*)")
-// cbd.Add("FROM tmp")
-// cbd.Add("WHERE")
-// cbd.AddTab("create_at BETWEEN ? AND ?", time.Now().AddDate(-1,0,0), time.Now())
-//
-// // copy condition
-// qbd := cbd.Copy()
-// qbd.Select("id", "created_at", "name")
-// qbd.Add("OFFSET ?", 0)
-// qbd.Add("LIMIT ?", 20)
-//
-// pSql := NewPageSql(cbd, qbd)
-// count, err := pSql.QueryCount(db)
-// ...
-// Or
-// titles, result, err := pSql.QueryPageArray(db)
-// ...
-// Or
-// titles, result, err := pSql.QueryPageMap(db)
-// ...
 package qsql
 
 import (

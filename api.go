@@ -1,5 +1,5 @@
 /*
-Provides database connections in factory mode to optimize database connections
+A simple and quick to get started go orm framework if you have experience with SQL language.
 */
 package qsql
 
