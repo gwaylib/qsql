@@ -1,6 +1,7 @@
 package qsql
 
 import (
+	"reflect"
 	"strings"
 )
 
@@ -68,12 +69,22 @@ func (b *SqlBuilder) AddIf(ok bool, key string, args ...interface{}) *SqlBuilder
 	return b.Add(key, args...)
 }
 
-func (b *SqlBuilder) AddIn(in []interface{}) string {
-	if len(in) == 0 {
+// where in is not a slice kind, it will be panic
+func (b *SqlBuilder) AddStmtIn(in interface{}) string {
+	v := reflect.ValueOf(in)
+	if v.Kind() != reflect.Slice {
+		panic("StmtIn input is not a slice type")
+	}
+	if v.Len() == 0 {
 		panic("need arguments of in condition")
 	}
-	b.args = append(b.args, in...)
-	return stmtIn(len(b.args)-1, len(in), b.drvName)
+	args := make([]interface{}, v.Len())
+	for i := v.Len() - 1; i > -1; i-- {
+		args[i] = v.Index(i).Interface()
+	}
+	stmtIn := stmtIn(len(b.args), len(args), b.drvName)
+	b.args = append(b.args, args...)
+	return stmtIn
 }
 
 func (b *SqlBuilder) Select(column ...string) *SqlBuilder {

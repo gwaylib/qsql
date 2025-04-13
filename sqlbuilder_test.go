@@ -13,11 +13,11 @@ func TestSqlBuilderSelect(t *testing.T) {
 	bd.Add("WHERE")
 	bd.AddTab("1=1")
 	bd.AddIf(true, "AND (1=?)", 0)
-	bd.AddIf(true, "OR (tb1 IN ("+bd.AddIn([]interface{}{1, 2})+"))")
+	bd.AddIf(true, "OR (tb1 IN ("+bd.AddStmtIn([]int{1, 2})+"))")
 	bd.Add("GROUP BY tb1.id")
 	bd.Add("HAVING count(*)>?", 1)
 	if bd.String() !=
-		`SELECT count(*) FROM tmp tb1 INNER JOIN tmp1 tb2 ON tb2.id=tb2.tmp_id WHERE 1=1 AND (1=?) OR (tb1 IN (:2,:3)) GROUP BY tb1.id HAVING count(*)>?` {
+		`SELECT count(*) FROM tmp tb1 INNER JOIN tmp1 tb2 ON tb2.id=tb2.tmp_id WHERE 1=1 AND (1=?) OR (tb1 IN (:1,:2)) GROUP BY tb1.id HAVING count(*)>?` {
 		t.Fatal(bd)
 	}
 
@@ -27,7 +27,7 @@ func TestSqlBuilderSelect(t *testing.T) {
 	bd1.Add("LIMIT ?", 1)
 	bd1.Select("tb1.id", "count(*)")
 	if bd1.String() !=
-		`SELECT tb1.id,count(*) FROM tmp tb1 INNER JOIN tmp1 tb2 ON tb2.id=tb2.tmp_id WHERE 1=1 AND (1=?) OR (tb1 IN (:2,:3)) GROUP BY tb1.id HAVING count(*)>? ORDER BY tb1.id DESC OFFSET ? LIMIT ?` {
+		`SELECT tb1.id,count(*) FROM tmp tb1 INNER JOIN tmp1 tb2 ON tb2.id=tb2.tmp_id WHERE 1=1 AND (1=?) OR (tb1 IN (:1,:2)) GROUP BY tb1.id HAVING count(*)>? ORDER BY tb1.id DESC OFFSET ? LIMIT ?` {
 		t.Fatal(bd1)
 	}
 
@@ -35,7 +35,7 @@ func TestSqlBuilderSelect(t *testing.T) {
 	bd2.Select("*")
 	bd2.Add("FROM ("+bd.String()+") tmp", bd1.Args()...)
 	if bd2.String() !=
-		`SELECT * FROM (SELECT count(*) FROM tmp tb1 INNER JOIN tmp1 tb2 ON tb2.id=tb2.tmp_id WHERE 1=1 AND (1=?) OR (tb1 IN (:2,:3)) GROUP BY tb1.id HAVING count(*)>?) tmp` {
+		`SELECT * FROM (SELECT count(*) FROM tmp tb1 INNER JOIN tmp1 tb2 ON tb2.id=tb2.tmp_id WHERE 1=1 AND (1=?) OR (tb1 IN (:1,:2)) GROUP BY tb1.id HAVING count(*)>?) tmp` {
 		t.Fatal(bd2)
 	}
 
