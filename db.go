@@ -45,6 +45,10 @@ func (db *DB) Close() error {
 	return db.DB.Close()
 }
 
+func (db *DB) NewSqlBuilder() *SqlBuilder {
+	return NewSqlBuilder(db.drvName)
+}
+
 // Reflect one db data to the struct. the struct tag format like `db:"field_title"`, reference to: http://github.com/jmoiron/sqlx
 func (db *DB) InsertStruct(structPtr interface{}, tbName string) (sql.Result, error) {
 	return insertStruct(db, context.TODO(), structPtr, tbName, db.drvName)

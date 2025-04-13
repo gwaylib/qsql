@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
+	"time"
 
 	"github.com/gwaylib/errors"
 	"github.com/gwaylib/qsql"
@@ -18,23 +20,24 @@ func main() {
 	mdb, _ := qsql.Open("sqlite3", ":memory:")
 	defer qsql.Close(mdb)
 
-	// create table
+	// create table by manualy
 	if _, err := mdb.Exec(
 		`CREATE TABLE user (
 		  "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
 		  "created_at" datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		  "updated_at" datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 		  "username" VARCHAR(32) NOT NULL UNIQUE,
 		  "passwd" VARCHAR(128) NOT NULL
 		);`); err != nil {
 		panic(err)
 	}
 
-	// std insert
+	// std sql insert one user
 	if _, err := mdb.Exec("INSERT INTO user(username,passwd)VALUES(?,?)", "t1", "t1"); err != nil {
 		panic(err)
 	}
 
-	// reflect insert
+	// reflect insert one user
 	newUser := &TestingUser{UserName: "t2", Passwd: "t2"}
 	if _, err := mdb.InsertStruct(newUser, "user"); err != nil {
 		panic(err)
@@ -43,7 +46,7 @@ func main() {
 		panic("expect newUser.ID > 0")
 	}
 
-	// std query
+	// std sql query
 	var id int64
 	var username, passwd string
 	if err := mdb.QueryRow("SELECT id, username, passwd FROM user WHERE username=?", "t1").Scan(&id, &username, &passwd); err != nil {
@@ -90,12 +93,28 @@ func main() {
 	}
 	fmt.Printf("ids:%+v\n", ids)
 
+	// query where if condition
+	ifBD := mdb.NewSqlBuilder()
+	ifBD.Select("id,created_at").
+		Add("FROM user WHERE id=?", "t1").
+		AddIf(rand.Int()%2 == 0, "OR (created_at BETWEN ? AND ?)", time.Now().Add(-1e9), time.Now())
+	if _, _, err := mdb.QueryPageArr(ifBD.String(), ifBD.Args()...); err != nil {
+		panic(err)
+	}
+
 	// query where in
 	whereIn := []string{"t1", "t2"}
 	whereInCount := 0
+	sqlbd := mdb.NewSqlBuilder()
+	sqlbd.Select("COUNT(*)").
+		Add("FROM").
+		AddTab("user").
+		Add("WHERE").
+		AddTab("username in (" + sqlbd.AddStmtIn(whereIn) + ")")
+
 	if err := mdb.QueryElem(&whereInCount,
-		fmt.Sprintf("SELECT COUNT(*) FROM user WHERE username in (%s)", mdb.StmtWhereIn(0, len(whereIn))),
-		qsql.StmtSliceArgs(whereIn)...,
+		sqlbd.String(),
+		sqlbd.Args()...,
 	); err != nil {
 		panic(err)
 	}
@@ -140,13 +159,21 @@ func main() {
 	}
 
 	// excute for stmt
-	// TODO: more stmt optimization
-	stmt, err := mdb.Prepare("SELECT COUNT(*) FROM user WHERE username=?")
+	stmt, err := mdb.Prepare(mdb.NewSqlBuilder().
+		Select("COUNT(*)").Add("FROM user WHERE username=?").String(),
+	)
 	count := 0
 	if err := stmt.QueryRow("t3").Scan(&count); err != nil {
 		panic(err)
 	}
 	if count != 1 {
 		panic(errors.New("need count==1").As(count))
+	}
+
+	// excute update
+	updateBD := mdb.NewSqlBuilder().
+		Add("UPDATE user SET passwd=? WHERE id=?", "t3", "t3")
+	if _, err := mdb.Exec(updateBD.String(), updateBD.Args()...); err != nil {
+		panic(errors.As(err, updateBD.Sql))
 	}
 }
