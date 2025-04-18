@@ -27,7 +27,7 @@ func TestSqlBuilderSelect(t *testing.T) {
 	bd1.Add("LIMIT ?", 1)
 	bd1.Select("tb1.id", "count(*)")
 	if bd1.String() !=
-		`SELECT tb1.id,count(*) FROM tmp tb1 INNER JOIN tmp1 tb2 ON tb2.id=tb2.tmp_id WHERE 1=1 AND (1=?) OR (tb1 IN (:1,:2)) GROUP BY tb1.id HAVING count(*)>? ORDER BY tb1.id DESC OFFSET ? LIMIT ?` {
+		`SELECT tb1.id, count(*) FROM tmp tb1 INNER JOIN tmp1 tb2 ON tb2.id=tb2.tmp_id WHERE 1=1 AND (1=?) OR (tb1 IN (:1,:2)) GROUP BY tb1.id HAVING count(*)>? ORDER BY tb1.id DESC OFFSET ? LIMIT ?` {
 		t.Fatal(bd1)
 	}
 
