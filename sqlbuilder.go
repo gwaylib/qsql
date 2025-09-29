@@ -1,6 +1,8 @@
+// the stmt placeholder using '?' for all, it will be replaced by builder.
 package qsql
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 )
@@ -14,6 +16,8 @@ type SqlBuilder struct {
 	args []interface{}
 
 	indent string
+
+	dump bool
 }
 
 func NewSqlBuilderWithIndent(indent string, drvName ...string) *SqlBuilder {
@@ -28,6 +32,10 @@ func NewSqlBuilderWithIndent(indent string, drvName ...string) *SqlBuilder {
 
 func NewSqlBuilder(drvName ...string) *SqlBuilder {
 	return NewSqlBuilderWithIndent(" ", drvName...)
+}
+
+func (b *SqlBuilder) SetDump(dump bool) {
+	b.dump = dump
 }
 
 func (b *SqlBuilder) DrvName() string {
@@ -50,6 +58,7 @@ func (b *SqlBuilder) Copy() *SqlBuilder {
 		queryStr: b.queryStr,
 		args:     make([]interface{}, len(b.args)),
 		indent:   b.indent,
+		dump:     b.dump,
 	}
 	copy(n.args, b.args)
 	n.fromBuff.WriteString(b.fromBuff.String())
@@ -72,37 +81,40 @@ func (b *SqlBuilder) Add(key string, args ...interface{}) *SqlBuilder {
 }
 
 // if indent isn't " ", add one tab with two space width to the buffer before adding
-func (b *SqlBuilder) AddTab(key string, args ...interface{}) *SqlBuilder {
+func (b *SqlBuilder) TabAdd(key string, args ...interface{}) *SqlBuilder {
 	if b.Indent() != " " {
 		return b.Add("  "+key, args...)
 	}
 	return b.Add(key, args...)
 }
 
-// call AddTab if ok is true
-func (b *SqlBuilder) AddIf(ok bool, key string, args ...interface{}) *SqlBuilder {
+// call TabAdd if ok is true
+func (b *SqlBuilder) IfTabAdd(ok bool, key string, args ...interface{}) *SqlBuilder {
 	if !ok {
 		return b
 	}
-	return b.AddTab(key, args...)
+	return b.TabAdd(key, args...)
 }
 
+// append the slice to the sql params and return then the stmt string.
 // where in is not a slice kind, it will be panic
-func (b *SqlBuilder) AddStmtIn(in interface{}) string {
-	v := reflect.ValueOf(in)
+func (b *SqlBuilder) In(inArgs interface{}) string {
+	v := reflect.ValueOf(inArgs)
 	if v.Kind() != reflect.Slice {
 		panic("StmtIn input is not a slice type")
 	}
 	if v.Len() == 0 {
 		panic("need arguments of in condition")
 	}
+	stmtIn := make([]rune, v.Len()*2)
 	args := make([]interface{}, v.Len())
 	for i := v.Len() - 1; i > -1; i-- {
+		stmtIn[i*2] = '?'
+		stmtIn[i*2+1] = ','
 		args[i] = v.Index(i).Interface()
 	}
-	stmtIn := stmtIn(len(b.args), len(args), b.drvName)
 	b.args = append(b.args, args...)
-	return stmtIn
+	return string(stmtIn[:len(stmtIn)-1])
 }
 
 func (b *SqlBuilder) Select(column ...string) *SqlBuilder {
@@ -123,10 +135,58 @@ func (b *SqlBuilder) SelectStruct(obj interface{}) *SqlBuilder {
 }
 
 func (b *SqlBuilder) String() string {
+	sqlStr := ""
 	if len(b.queryStr) > 0 {
-		return strings.TrimSuffix(b.queryStr+b.Indent()+b.fromBuff.String(), b.Indent())
+		sqlStr = strings.TrimSuffix(b.queryStr+b.Indent()+b.fromBuff.String(), b.Indent())
+	} else {
+		sqlStr = strings.TrimSuffix(b.fromBuff.String(), b.Indent())
 	}
-	return strings.TrimSuffix(b.fromBuff.String(), b.Indent())
+
+	// fix build driver
+	switch b.drvName {
+	case DRV_NAME_ORACLE, _DRV_NAME_OCI8:
+		paramIdx := 1
+		buff := strings.Builder{}
+		for _, r := range sqlStr {
+			if r != '?' {
+				buff.WriteRune(r)
+			} else {
+				buff.WriteString(fmt.Sprintf(":%d", paramIdx))
+				paramIdx++
+			}
+		}
+		sqlStr = buff.String()
+	case DRV_NAME_POSTGRES:
+		paramIdx := 1
+		buff := strings.Builder{}
+		for _, r := range sqlStr {
+			if r != '?' {
+				buff.WriteRune(r)
+			} else {
+				buff.WriteString(fmt.Sprintf("$%d", paramIdx))
+				paramIdx++
+			}
+		}
+		sqlStr = buff.String()
+	case DRV_NAME_SQLSERVER, _DRV_NAME_MSSQL:
+		buff := strings.Builder{}
+		paramIdx := 1
+		for _, r := range sqlStr {
+			if r != '?' {
+				buff.WriteRune(r)
+			} else {
+				buff.WriteString(fmt.Sprintf("@p%d", paramIdx))
+				paramIdx++
+			}
+		}
+		sqlStr = buff.String()
+	default:
+		// nothing to do.
+	}
+	if b.dump {
+		log.Debug(sqlStr, b.args)
+	}
+	return sqlStr
 }
 
 func (b *SqlBuilder) Args() []interface{} {

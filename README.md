@@ -215,10 +215,10 @@ func main() {
     bd := mdb.NewSqlBuilder() // qsql.NewSqlBuilder(mdb.DriverName())
     bd.Select("id", "created_at")
     bd.Add("FROM")
-    bd.AddTab("tmp")
+    bd.TabAdd("tmp")
     bd.Add("WHERE")
-    bd.AddTab("created_at BETWEEN ? AND ?", time.Now().AddDate(-1,0,0), time.Now())
-    bd.AddTabIf(len(inIds)>0, "AND id IN ("+bd.AddStmtIn(inIds)+")", id)
+    bd.TabAdd("created_at BETWEEN ? AND ?", time.Now().AddDate(-1,0,0), time.Now())
+    bd.IfTabAdd(len(inIds)>0, "AND id IN ("+bd.In(inIds)+")", id)
     titles, data, err := mdb.QueryPageArr(bd.String(), bd.Args()...) 
     if err != nil {
         panic(err)
@@ -226,9 +226,9 @@ func main() {
 
     updateBD := mdb.NewSqlBuilder()
     updateBD.Add("UPDATE tmp SET")
-    updateBD.AddTab("(updated_at=?,name=?)", time.Now())
+    updateBD.TabAdd("(updated_at=?,name=?)", time.Now())
     updateDB.Add("WHERE")
-    updateDB.AddTab("id=?", id)
+    updateDB.TabAdd("id=?", id)
     if _, err := mdb.Exec(updateDB.String(), updateDB.Args()...); err != nil {
         panic(err)
     }

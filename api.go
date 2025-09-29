@@ -10,7 +10,6 @@ import (
 	"runtime/debug"
 
 	"github.com/gwaylib/errors"
-	"github.com/gwaylib/log"
 )
 
 type Execer interface {

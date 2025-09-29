@@ -3,17 +3,17 @@ package qsql
 import "testing"
 
 func TestStmtIn(t *testing.T) {
-	sqlite3Output := StmtIn(0, 3, DRV_NAME_SQLITE3)
+	sqlite3Output := StmtIn(1, 3, DRV_NAME_SQLITE3)
 	if sqlite3Output != "?,?,?" {
 		t.Fatalf("expect '?,?,?', but: %s", sqlite3Output)
 	}
-	pgOutput := StmtIn(0, 3, DRV_NAME_POSTGRES)
-	if pgOutput != ":0,:1,:2" {
-		t.Fatalf("expect ':0,:1,:2', but: %s", pgOutput)
+	pgOutput := StmtIn(1, 3, DRV_NAME_POSTGRES)
+	if pgOutput != "$1,$2,$3" {
+		t.Fatalf("expect '$1,$2,$3', but: %s", pgOutput)
 	}
-	pgOutput1 := StmtIn(1, 3, DRV_NAME_POSTGRES)
-	if pgOutput1 != ":1,:2,:3" {
-		t.Fatalf("expect ':1,:2,:3', but: %s", pgOutput1)
+	pgOutput1 := StmtIn(2, 3, DRV_NAME_POSTGRES)
+	if pgOutput1 != "$2,$3,$4" {
+		t.Fatalf("expect '$2,$3,$4', but: %s", pgOutput1)
 	}
 	msOutput := StmtIn(0, 3, DRV_NAME_SQLSERVER)
 	if msOutput != "@p0,@p1,@p2" {

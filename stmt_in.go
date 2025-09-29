@@ -12,12 +12,18 @@ func stmtIn(paramIdx, paramsLen int, driverNames ...string) string {
 	drvName := getDrvName(nil, driverName)
 	switch drvName {
 	case DRV_NAME_ORACLE, _DRV_NAME_OCI8:
-		// *outputInputs = append(*outputInputs, []byte(fmt.Sprintf(":%s,", f.Name))...)
-		panic("unknow how to implemented")
-	case DRV_NAME_POSTGRES:
 		result := []byte{}
 		for i := 0; i < paramsLen; i++ {
 			result = append(result, []byte(fmt.Sprintf(":%d,", paramIdx+i))...)
+		}
+		if len(result) > 0 {
+			return string(result[:len(result)-1]) // remove the last ','
+		}
+		return string(result)
+	case DRV_NAME_POSTGRES:
+		result := []byte{}
+		for i := 0; i < paramsLen; i++ {
+			result = append(result, []byte(fmt.Sprintf("$%d,", paramIdx+i))...)
 		}
 		if len(result) > 0 {
 			return string(result[:len(result)-1]) // remove the last ','
