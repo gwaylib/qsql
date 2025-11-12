@@ -65,14 +65,14 @@ func (b *SqlBuilder) Copy() *SqlBuilder {
 	return n
 }
 
-// add the key to the buffer with indent,
-// and append the args to the argument recorder, call builder.Args() to output the recorder
-func (b *SqlBuilder) Add(key string, args ...interface{}) *SqlBuilder {
-	if len(key) == 0 {
+// add the query to the buffer with indent,
+// and add the args to the argument recorder, call builder.Args() to output the recorder
+func (b *SqlBuilder) Add(query string, args ...interface{}) *SqlBuilder {
+	if len(query) == 0 {
 		return b
 	}
 
-	b.fromBuff.WriteString(key)
+	b.fromBuff.WriteString(query)
 	b.fromBuff.WriteString(b.Indent())
 	if len(args) > 0 {
 		b.args = append(b.args, args...)
@@ -81,24 +81,24 @@ func (b *SqlBuilder) Add(key string, args ...interface{}) *SqlBuilder {
 }
 
 // if indent isn't " ", add one tab with two space width to the buffer before adding
-func (b *SqlBuilder) TabAdd(key string, args ...interface{}) *SqlBuilder {
+func (b *SqlBuilder) AddTab(query string, args ...interface{}) *SqlBuilder {
 	if b.Indent() != " " {
-		return b.Add("  "+key, args...)
+		return b.Add("  "+query, args...)
 	}
-	return b.Add(key, args...)
+	return b.Add(query, args...)
 }
 
-// call TabAdd if ok is true
-func (b *SqlBuilder) IfTabAdd(ok bool, key string, args ...interface{}) *SqlBuilder {
+// call AddTab if ok is true
+func (b *SqlBuilder) AddIf(ok bool, query string, args ...interface{}) *SqlBuilder {
 	if !ok {
 		return b
 	}
-	return b.TabAdd(key, args...)
+	return b.AddTab(query, args...)
 }
 
 // append the slice to the sql params and return then the stmt string.
 // where in is not a slice kind, it will be panic
-func (b *SqlBuilder) In(inArgs interface{}) string {
+func (b *SqlBuilder) AddStmtIn(inArgs interface{}) string {
 	v := reflect.ValueOf(inArgs)
 	if v.Kind() != reflect.Slice {
 		panic("StmtIn input is not a slice type")
@@ -184,7 +184,7 @@ func (b *SqlBuilder) String() string {
 		// nothing to do.
 	}
 	if b.dump {
-		log.Debug(sqlStr, b.args)
+		log.Println(sqlStr, b.args)
 	}
 	return sqlStr
 }

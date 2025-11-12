@@ -1,15 +1,14 @@
 package qsql
 
 import (
-	l "github.com/gwaylib/log"
+	slog "log"
 )
 
 type Log interface {
-	Debug(msg ...interface{})
-	Error(msg ...interface{})
+	Println(msg ...interface{})
 }
 
-var log = Log(l.NewWithCaller("qsql", 4))
+var log = Log(slog.Default())
 
 func SetLog(l Log) {
 	log = l

@@ -114,7 +114,7 @@ func Close(closer io.Closer) {
 func Rollback(tx *sql.Tx) {
 	if err := tx.Rollback(); err != nil {
 		// roll back error is a serious error
-		log.Error(errors.As(err))
+		log.Println(errors.As(err))
 	}
 }
 

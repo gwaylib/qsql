@@ -231,10 +231,10 @@ func main() {
     bd := mdb.NewSqlBuilder() // qsql.NewSqlBuilder(mdb.DriverName())
     bd.Select("id", "created_at")
     bd.Add("FROM")
-    bd.TabAdd("tmp")
+    bd.AddTab("tmp")
     bd.Add("WHERE")
-    bd.TabAdd("created_at BETWEEN ? AND ?", time.Now().AddDate(-1,0,0), time.Now())
-    bd.IfTabAdd(len(inIds)>0, fmt.Sprintf("AND id IN (%s)", bd.In(inIds))) // create the sql params as '?', becareful, it has performance issues when the array is too long.
+    bd.AddTab("created_at BETWEEN ? AND ?", time.Now().AddDate(-1,0,0), time.Now())
+    bd.AddTabIf(len(inIds)>0, fmt.Sprintf("AND id IN (%s)", bd.AddStmtIn(inIds))) // create the sql params as '?', becareful, it has performance issues when the array is too long.
     titles, data, err := mdb.QueryPageArr(bd.String(), bd.Args()...) 
     if err != nil {
         panic(err)
@@ -242,9 +242,9 @@ func main() {
 
     updateBD := mdb.NewSqlBuilder()
     updateBD.Add("UPDATE tmp SET")
-    updateBD.TabAdd("(updated_at=?,name=?)", time.Now())
+    updateBD.AddTab("(updated_at=?,name=?)", time.Now())
     updateDB.Add("WHERE")
-    updateDB.TabAdd("id=?", id)
+    updateDB.AddTab("id=?", id)
     if _, err := mdb.Exec(updateDB.String(), updateDB.Args()...); err != nil {
         panic(err)
     }

@@ -110,7 +110,7 @@ func main() {
 		Add("FROM").
 		AddTab("user").
 		Add("WHERE").
-		AddTab("username in (" + sqlbd.AddStmtIn(whereIn) + ")")
+		Add(fmt.Sprintf("username in (%s)", sqlbd.AddStmtIn(whereIn)))
 
 	if err := mdb.QueryElem(&whereInCount,
 		sqlbd.String(),
