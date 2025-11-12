@@ -111,7 +111,7 @@ func main() {
 ``` text
 mdb := db.GetCache("main") 
 
-row := mdb.QueryRow("SELECT * ...") // 
+row := mdb.QueryRow("SELECT * ...")
 // ...
 
 rows, err := mdb.Query("SELECT * ...")
@@ -138,10 +138,26 @@ func main() {
     }
 
     // Insert data with driver.
-    if _, err := mdb.InsertStruct(u, "testing"); err != nil{
+    if _, err := mdb.InsertStruct(u, "testing"); err != nil {
         // ... 
     }
     // ...
+
+    // Insert structs
+    // TODO: qsql.InsertStructs ?
+    var us := []User{}
+    tx := mdb.Begin()
+    txFn := func() error{
+        for _, u := range us {
+            if err := tx.InsertStruct(u, "testing"); err != nil{
+                return errors.As(err)
+            }
+        }
+        return nil
+    }
+    if err := qsql.Commit(tx, txFn); err != nil {
+        // ...
+    }
 }
 
 ```
@@ -173,7 +189,7 @@ func main() {
     // ..
 
     count := 0
-    if err := mdb.QueryElem(&count, "SELECT count(*) FROM a WHERE id = ?", id); err != nil{
+    if err := mdb.QueryElem(&count, "SELECT count(*) FROM a WHERE id = ?", id); err != nil {
         // sql.ErrNoRows has been replace by errors.ErrNoData
         if errors.ErrNoData.Equal(err) {
            // no data
@@ -218,7 +234,7 @@ func main() {
     bd.TabAdd("tmp")
     bd.Add("WHERE")
     bd.TabAdd("created_at BETWEEN ? AND ?", time.Now().AddDate(-1,0,0), time.Now())
-    bd.IfTabAdd(len(inIds)>0, "AND id IN ("+bd.In(inIds)+")", id)
+    bd.IfTabAdd(len(inIds)>0, fmt.Sprintf("AND id IN (%s)", bd.In(inIds))) // create the sql params as '?', becareful, it has performance issues when the array is too long.
     titles, data, err := mdb.QueryPageArr(bd.String(), bd.Args()...) 
     if err != nil {
         panic(err)
