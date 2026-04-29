@@ -23,6 +23,53 @@ var refxM = reflectx.NewMapperTagFunc("db", func(in string) string {
 	return strings.Join(trims, ",")
 })
 
+func _travelSelectField(f *reflectx.FieldInfo, v *reflect.Value, selectNames *[]string) {
+	switch v.Kind() {
+	case reflect.Invalid:
+		// nil value
+		return
+	case
+		reflect.Bool,
+		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
+		reflect.Float32, reflect.Float64,
+		reflect.String:
+		// continue
+		break
+	case reflect.Struct, reflect.Ptr:
+		if _, ok := v.Interface().(driver.Valuer); ok {
+			break
+		}
+		switch v.Type().String() {
+		case "time.Time":
+			break
+		default:
+			childrenLen := len(f.Children)
+			for i := 0; i < childrenLen; i++ {
+				child := f.Children[i]
+				if child == nil {
+					// found ignore tag, do next.
+					continue
+				}
+				fieldVal := reflect.Indirect(*v).Field(i)
+				_travelSelectField(
+					child, &fieldVal, selectNames,
+				)
+			}
+			return
+		}
+	default:
+		switch v.Type().String() {
+		case "[]uint8":
+			break
+		default:
+			// unsupport
+			return
+		}
+	}
+	*selectNames = append(*selectNames, "\""+f.Name+"\"")
+}
+
 // return is it a auto_increment field
 func _travelStructField(f *reflectx.FieldInfo, v *reflect.Value, drvName *string, fieldIdx *int, selectNames *[]string, stmtParams *[]string, scanVals *[]interface{}) *reflect.Value {
 	*fieldIdx += 1
@@ -130,6 +177,40 @@ func (r *reflectInsertField) SetAutoIncrement(v reflect.Value) {
 		return
 	}
 	r.AutoIncrement.Set(v)
+}
+
+func reflectSelectStruct(i interface{}) ([]string, error) {
+	v := reflect.ValueOf(i)
+	k := v.Kind()
+	switch k {
+	case reflect.Ptr:
+	default:
+		return nil, errors.New("Unsupport reflect type").As(k.String())
+	}
+	v = reflect.Indirect(v)
+
+	tm := refxM.TypeMap(v.Type())
+
+	outputSelectNames := []string{}
+	childrenLen := len(tm.Tree.Children)
+	for i := 0; i < childrenLen; i++ {
+		field := tm.Tree.Children[i]
+		if field == nil {
+			// found ignore tag, do next.
+			continue
+		}
+
+		fieldVal := v.Field(i)
+		_travelSelectField(
+			field, &fieldVal,
+			&outputSelectNames,
+		)
+	}
+
+	if len(outputSelectNames) == 0 {
+		panic("No public field in struct")
+	}
+	return outputSelectNames, nil
 }
 
 func reflectInsertStruct(i interface{}, drvName string) (*reflectInsertField, error) {
