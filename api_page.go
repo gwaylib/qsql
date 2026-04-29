@@ -2,6 +2,7 @@ package qsql
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/gwaylib/errors"
 )
@@ -15,6 +16,14 @@ func NewPageSql(countSql, querySql string) *PageSql {
 	return &PageSql{
 		countSql: countSql,
 		querySql: querySql,
+	}
+}
+
+// format sql and return a new PageSql
+func (p *PageSql) FmtPage(args ...interface{}) *PageSql {
+	return &PageSql{
+		countSql: fmt.Sprintf(p.countSql, args...),
+		querySql: fmt.Sprintf(p.querySql, args...),
 	}
 }
 
