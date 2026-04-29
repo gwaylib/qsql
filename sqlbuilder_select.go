@@ -162,7 +162,7 @@ func (b *SelectBuilder) Select(column ...string) *SelectBuilder {
 	if len(column) > 0 {
 		b.queryStr = strings.Join(column, ", ")
 	} else {
-		b.queryStr += "*"
+		b.queryStr = "*"
 	}
 	return b
 }
