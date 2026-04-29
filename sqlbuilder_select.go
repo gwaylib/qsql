@@ -61,6 +61,8 @@ func (b *SelectBuilder) Copy() *SelectBuilder {
 		groupArgs: make([]interface{}, len(b.groupArgs)),
 		orderStr:  b.orderStr,
 		orderArgs: make([]interface{}, len(b.orderArgs)),
+		offset:    b.offset,
+		limit:     b.limit,
 	}
 	copy(n.fromArgs, b.fromArgs)
 	copy(n.whereArgs, b.whereArgs)
