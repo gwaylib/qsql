@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"math/rand"
 	"time"
@@ -94,26 +95,25 @@ func main() {
 	fmt.Printf("ids:%+v\n", ids)
 
 	// query where if condition
-	ifBD := mdb.NewSqlBuilder()
+	ifBD := qsql.NewSelectBuilder()
 	ifBD.Select("id,created_at").
-		Add("FROM user WHERE id=?", "t1").
-		AddIf(rand.Int()%2 == 0, "OR (created_at BETWEN ? AND ?)", time.Now().Add(-1e9), time.Now())
-	if _, _, err := mdb.QueryPageArr(ifBD.String(), ifBD.Args()...); err != nil {
+		From("user").
+		Where(true, "id=?", "t1").
+		Where(rand.Int()%2 == 0, "OR (created_at BETWEN ? AND ?)", time.Now().Add(-1e9), time.Now())
+	if _, _, err := mdb.QueryPageArr(ifBD.StrTo(mdb.DriverName()), ifBD.Args()...); err != nil {
 		panic(err)
 	}
 
 	// query where in
 	whereIn := []string{"t1", "t2"}
 	whereInCount := 0
-	sqlbd := mdb.NewSqlBuilder()
+	sqlbd := qsql.NewSelectBuilder()
 	sqlbd.Select("COUNT(*)").
-		Add("FROM").
-		AddTab("user").
-		Add("WHERE").
-		Add(fmt.Sprintf("username in (%s)", sqlbd.AddStmtIn(whereIn)))
+		From("user").
+		Where(true, fmt.Sprintf("username in (%s)", sqlbd.In(whereIn)))
 
 	if err := mdb.QueryElem(&whereInCount,
-		sqlbd.String(),
+		sqlbd.StrTo(mdb.DriverName()),
 		sqlbd.Args()...,
 	); err != nil {
 		panic(err)
@@ -139,11 +139,7 @@ func main() {
 	fmt.Printf("PageMap data: %+v\n", mData)
 
 	// executer for tx
-	tx, err := mdb.Begin()
-	if err != nil {
-		panic(err)
-	}
-	if err := mdb.Commit(tx, func() error {
+	if err := mdb.Commit(func(tx *sql.Tx) error {
 		txUsers := []TestingUser{
 			{UserName: "t3", Passwd: "t3"},
 			{UserName: "t4", Passwd: "t4"},
@@ -159,8 +155,8 @@ func main() {
 	}
 
 	// excute for stmt
-	stmt, err := mdb.Prepare(mdb.NewSqlBuilder().
-		Select("COUNT(*)").Add("FROM user WHERE username=?").String(),
+	stmt, err := mdb.Prepare(qsql.NewSelectBuilder().
+		Select("COUNT(*)").From("user").Where(true, "username=?").StrTo(mdb.DriverName()),
 	)
 	count := 0
 	if err := stmt.QueryRow("t3").Scan(&count); err != nil {
@@ -171,9 +167,7 @@ func main() {
 	}
 
 	// excute update
-	updateBD := mdb.NewSqlBuilder().
-		Add("UPDATE user SET passwd=? WHERE id=?", "t3", "t3")
-	if _, err := mdb.Exec(updateBD.String(), updateBD.Args()...); err != nil {
-		panic(errors.As(err, updateBD.Sql))
+	if _, err := mdb.Exec("UPDATE user SET passwd=? WHERE id=?", "t3", "t3"); err != nil {
+		panic(errors.As(err))
 	}
 }

@@ -48,11 +48,16 @@ func (b *SelectBuilder) Indent() string {
 	return b.indent
 }
 
-func (b *SelectBuilder) Copy() *SelectBuilder {
+// copy and return a new selector without select buffer
+func (b *SelectBuilder) Copy(newSelectBuffer bool) *SelectBuilder {
+	queryStr := ""
+	if !newSelectBuffer {
+		queryStr = b.queryStr
+	}
 	n := &SelectBuilder{
 		indent:      b.indent,
 		dump:        b.dump,
-		queryStr:    b.queryStr,
+		queryStr:    queryStr,
 		fromStr:     b.fromStr,
 		fromArgs:    make([]interface{}, len(b.fromArgs)),
 		whereStr:    b.whereStr,
@@ -69,6 +74,36 @@ func (b *SelectBuilder) Copy() *SelectBuilder {
 	copy(n.groupByArgs, b.groupByArgs)
 	copy(n.orderByArgs, b.orderByArgs)
 	return n
+}
+
+// select the columns and append to select buffer
+func (b *SelectBuilder) Select(column ...string) *SelectBuilder {
+	if len(column) > 0 {
+		queryStr := strings.Join(column, ", ")
+		if len(b.queryStr) > 0 {
+			b.queryStr += (", " + queryStr)
+		} else {
+			b.queryStr = queryStr
+		}
+	} else if len(b.queryStr) == 0 {
+		b.queryStr = "*"
+	}
+	return b
+}
+
+// clean select buffer and select the new columns
+func (b *SelectBuilder) SelectNew(column ...string) *SelectBuilder {
+	bd := b.Copy(true)
+	return bd.Select(column...)
+}
+
+// clean select buffer and select the struct columns
+func (b *SelectBuilder) SelectStruct(obj interface{}) *SelectBuilder {
+	fields, err := reflectSelectStruct(obj)
+	if err != nil {
+		panic(err)
+	}
+	return b.SelectNew(fields...)
 }
 
 func (b *SelectBuilder) From(query string, args ...interface{}) *SelectBuilder {
@@ -158,25 +193,6 @@ func (b *SelectBuilder) Offset(offset int64) *SelectBuilder {
 func (b *SelectBuilder) Limit(limit int64) *SelectBuilder {
 	b.limit = limit
 	return b
-}
-
-// reset select buffer and select the columns
-func (b *SelectBuilder) Select(column ...string) *SelectBuilder {
-	if len(column) > 0 {
-		b.queryStr = strings.Join(column, ", ")
-	} else {
-		b.queryStr = "*"
-	}
-	return b
-}
-
-// reset select buffer and select the struct columns
-func (b *SelectBuilder) SelectStruct(obj interface{}) *SelectBuilder {
-	fields, err := reflectSelectStruct(obj)
-	if err != nil {
-		panic(err)
-	}
-	return b.Select(fields...)
 }
 
 // get the buffer args

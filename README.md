@@ -146,8 +146,7 @@ func main() {
     // Insert structs
     // TODO: qsql.InsertStructs ?
     var us := []User{}
-    tx := mdb.Begin()
-    txFn := func() error{
+    txFn := func(tx *sql.Tx) error{
         for _, u := range us {
             if err := tx.InsertStruct(u, "testing"); err != nil{
                 return errors.As(err)
@@ -155,7 +154,7 @@ func main() {
         }
         return nil
     }
-    if err := qsql.Commit(tx, txFn); err != nil {
+    if err := qsql.Commit(mdb, txFn); err != nil {
         // ...
     }
 }
@@ -204,17 +203,13 @@ func main() {
 // commit the tx
 func main() {
     mdb := qsql.GetCache("main") 
-    tx, err := mdb.Begin()
-    if err != nil{
-        // ...
-    }
-    fn := func() error {
+    fn := func(tx *sql.Tx) error {
       if err := tx.Exec("UPDATE testing SET name = ? WHERE id = ?", id); err != nil{
         return err
       }
       return nil
     }
-    if err := mdb.Commit(tx, fn); err != nil {
+    if err := mdb.Commit(fn); err != nil {
         // ...
     }
 }

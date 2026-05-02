@@ -6,11 +6,21 @@ package qsql
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
 	"io"
 	"runtime/debug"
 
 	"github.com/gwaylib/errors"
 )
+
+type Driver interface {
+	DriverName() string
+	Driver() driver.Driver
+}
+
+type Txer interface {
+	Begin() (*sql.Tx, error)
+}
 
 type Execer interface {
 	Exec(query string, args ...interface{}) (sql.Result, error)
@@ -83,7 +93,7 @@ type QuickSql interface {
 	StmtIn(paramStartIdx, paramLen int) string
 
 	// auto commit when the func is return nil, or auto rollback when the func is error
-	Commit(tx *sql.Tx, fn func() error) error
+	Commit(func(tx *sql.Tx) error) error
 }
 
 func NewDB(drvName string, db *sql.DB) *DB {
@@ -119,8 +129,12 @@ func Rollback(tx *sql.Tx) {
 }
 
 // A lazy function to commit the *sql.Tx
-func Commit(tx *sql.Tx, fn func() error) error {
-	if err := fn(); err != nil {
+func Commit(txer Txer, fn func(tx *sql.Tx) error) error {
+	tx, err := txer.Begin()
+	if err != nil {
+		return errors.As(err)
+	}
+	if err := fn(tx); err != nil {
 		Rollback(tx)
 		return err
 	}

@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"sync"
+
+	"github.com/gwaylib/errors"
 )
 
 // qsql.DB Extendd sql.DB
@@ -118,8 +120,12 @@ func (db *DB) StmtIn(paramStartIdx, paramsLen int) string {
 
 // A lazy function to commit the *sql.Tx
 // if will auto commit when the function is nil error, or do a rollback and return the function error.
-func (db *DB) Commit(tx *sql.Tx, fn func() error) error {
-	if err := fn(); err != nil {
+func (db *DB) Commit(fn func(*sql.Tx) error) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return errors.As(err)
+	}
+	if err := fn(tx); err != nil {
 		Rollback(tx)
 		return err
 	}

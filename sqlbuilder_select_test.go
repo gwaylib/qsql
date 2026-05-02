@@ -20,7 +20,7 @@ func TestSelectBuilder(t *testing.T) {
 		t.Fatal(bd)
 	}
 
-	bd1 := bd.Copy()
+	bd1 := bd.Copy(true)
 	bd1.OrderBy("tb1.id DESC")
 	bd1.Offset(1)
 	bd1.Limit(1)
