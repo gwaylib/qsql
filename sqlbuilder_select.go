@@ -12,17 +12,17 @@ type SelectBuilder struct {
 	indent string
 	dump   bool
 
-	queryStr  string
-	fromStr   string
-	fromArgs  []interface{}
-	whereStr  string
-	whereArgs []interface{}
-	groupStr  string
-	groupArgs []interface{}
-	orderStr  string
-	orderArgs []interface{}
-	offset    int64
-	limit     int64
+	queryStr    string
+	fromStr     string
+	fromArgs    []interface{}
+	whereStr    string
+	whereArgs   []interface{}
+	groupByStr  string
+	groupByArgs []interface{}
+	orderByStr  string
+	orderByArgs []interface{}
+	offset      int64
+	limit       int64
 }
 
 func NewSelectBuilder() *SelectBuilder {
@@ -50,24 +50,24 @@ func (b *SelectBuilder) Indent() string {
 
 func (b *SelectBuilder) Copy() *SelectBuilder {
 	n := &SelectBuilder{
-		indent:    b.indent,
-		dump:      b.dump,
-		queryStr:  b.queryStr,
-		fromStr:   b.fromStr,
-		fromArgs:  make([]interface{}, len(b.fromArgs)),
-		whereStr:  b.whereStr,
-		whereArgs: make([]interface{}, len(b.whereArgs)),
-		groupStr:  b.groupStr,
-		groupArgs: make([]interface{}, len(b.groupArgs)),
-		orderStr:  b.orderStr,
-		orderArgs: make([]interface{}, len(b.orderArgs)),
-		offset:    b.offset,
-		limit:     b.limit,
+		indent:      b.indent,
+		dump:        b.dump,
+		queryStr:    b.queryStr,
+		fromStr:     b.fromStr,
+		fromArgs:    make([]interface{}, len(b.fromArgs)),
+		whereStr:    b.whereStr,
+		whereArgs:   make([]interface{}, len(b.whereArgs)),
+		groupByStr:  b.groupByStr,
+		groupByArgs: make([]interface{}, len(b.groupByArgs)),
+		orderByStr:  b.orderByStr,
+		orderByArgs: make([]interface{}, len(b.orderByArgs)),
+		offset:      b.offset,
+		limit:       b.limit,
 	}
 	copy(n.fromArgs, b.fromArgs)
 	copy(n.whereArgs, b.whereArgs)
-	copy(n.groupArgs, b.groupArgs)
-	copy(n.orderArgs, b.orderArgs)
+	copy(n.groupByArgs, b.groupByArgs)
+	copy(n.orderByArgs, b.orderByArgs)
 	return n
 }
 
@@ -123,30 +123,30 @@ func (b *SelectBuilder) In(inArgs interface{}) string {
 	return string(stmtIn[:len(stmtIn)-1])
 }
 
-func (b *SelectBuilder) Group(query string, args ...interface{}) *SelectBuilder {
+func (b *SelectBuilder) GroupBy(query string, args ...interface{}) *SelectBuilder {
 	if len(query) == 0 {
 		return b
 	}
-	if len(b.groupStr) > 0 {
-		b.groupStr += b.Indent()
+	if len(b.groupByStr) > 0 {
+		b.groupByStr += b.Indent()
 	}
-	b.groupStr += query
+	b.groupByStr += query
 	if len(args) > 0 {
-		b.groupArgs = append(b.groupArgs, args...)
+		b.groupByArgs = append(b.groupByArgs, args...)
 	}
 	return b
 }
 
-func (b *SelectBuilder) Order(query string, args ...interface{}) *SelectBuilder {
+func (b *SelectBuilder) OrderBy(query string, args ...interface{}) *SelectBuilder {
 	if len(query) == 0 {
 		return b
 	}
-	if len(b.orderStr) > 0 {
-		b.orderStr += ("," + b.Indent())
+	if len(b.orderByStr) > 0 {
+		b.orderByStr += ("," + b.Indent())
 	}
-	b.orderStr += query
+	b.orderByStr += query
 	if len(args) > 0 {
-		b.orderArgs = append(b.orderArgs, args...)
+		b.orderByArgs = append(b.orderByArgs, args...)
 	}
 	return b
 }
@@ -160,6 +160,7 @@ func (b *SelectBuilder) Limit(limit int64) *SelectBuilder {
 	return b
 }
 
+// reset select buffer and select the columns
 func (b *SelectBuilder) Select(column ...string) *SelectBuilder {
 	if len(column) > 0 {
 		b.queryStr = strings.Join(column, ", ")
@@ -168,6 +169,8 @@ func (b *SelectBuilder) Select(column ...string) *SelectBuilder {
 	}
 	return b
 }
+
+// reset select buffer and select the struct columns
 func (b *SelectBuilder) SelectStruct(obj interface{}) *SelectBuilder {
 	fields, err := reflectSelectStruct(obj)
 	if err != nil {
@@ -176,15 +179,17 @@ func (b *SelectBuilder) SelectStruct(obj interface{}) *SelectBuilder {
 	return b.Select(fields...)
 }
 
+// get the buffer args
 func (b *SelectBuilder) Args() []interface{} {
-	result := make([]interface{}, len(b.fromArgs)+len(b.whereArgs)+len(b.groupArgs)+len(b.orderArgs))
+	result := make([]interface{}, len(b.fromArgs)+len(b.whereArgs)+len(b.groupByArgs)+len(b.orderByArgs))
 	idx := copy(result, b.fromArgs)
 	idx += copy(result[idx:], b.whereArgs)
-	idx += copy(result[idx:], b.groupArgs)
-	idx += copy(result[idx:], b.orderArgs)
+	idx += copy(result[idx:], b.groupByArgs)
+	idx += copy(result[idx:], b.orderByArgs)
 	return result
 }
 
+// translate sql to db driver
 func (b *SelectBuilder) StrTo(drvName string) string {
 	if len(b.queryStr) == 0 {
 		b.queryStr = "*"
@@ -196,11 +201,11 @@ func (b *SelectBuilder) StrTo(drvName string) string {
 	if len(b.whereStr) > 0 {
 		sqlStr += (b.Indent() + "WHERE " + b.whereStr)
 	}
-	if len(b.groupStr) > 0 {
-		sqlStr += (b.Indent() + "GROUP BY " + b.groupStr)
+	if len(b.groupByStr) > 0 {
+		sqlStr += (b.Indent() + "GROUP BY " + b.groupByStr)
 	}
-	if len(b.orderStr) > 0 {
-		sqlStr += (b.Indent() + "ORDER BY " + b.orderStr)
+	if len(b.orderByStr) > 0 {
+		sqlStr += (b.Indent() + "ORDER BY " + b.orderByStr)
 	}
 	if b.offset > 0 {
 		sqlStr += (b.Indent() + "OFFSET " + strconv.FormatInt(b.offset, 10))
@@ -209,7 +214,7 @@ func (b *SelectBuilder) StrTo(drvName string) string {
 		sqlStr += (b.Indent() + "LIMIT " + strconv.FormatInt(b.limit, 10))
 	}
 
-	// fix build driver
+	// translate to db driver
 	switch drvName {
 	case DRV_NAME_ORACLE, _DRV_NAME_OCI8:
 		paramIdx := 1
@@ -256,6 +261,7 @@ func (b *SelectBuilder) StrTo(drvName string) string {
 	return sqlStr
 }
 
+// Merge StrTo and Args to a finally slice
 func (b *SelectBuilder) SqlTo(drvName string) []interface{} {
 	result := []interface{}{b.StrTo(drvName)}
 	return append(result, b.Args()...)

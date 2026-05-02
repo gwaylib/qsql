@@ -13,15 +13,15 @@ func TestSelectBuilder(t *testing.T) {
 	bd.Where(true, "1=1")
 	bd.Where(true, "AND (1=?)", 0)
 	bd.Where(true, "OR (tb1 IN ("+bd.In(paramIn)+"))")
-	bd.Group("tb1.id")
-	bd.Group("HAVING count(*)>?", 1)
+	bd.GroupBy("tb1.id")
+	bd.GroupBy("HAVING count(*)>?", 1)
 	if bd.StrTo(DRV_NAME_POSTGRES) !=
 		`SELECT count(*) FROM tmp tb1 INNER JOIN tmp1 tb2 ON tb2.id=tb2.tmp_id WHERE 1=1 AND (1=$1) OR (tb1 IN ($2,$3)) GROUP BY tb1.id HAVING count(*)>$4` {
 		t.Fatal(bd)
 	}
 
 	bd1 := bd.Copy()
-	bd1.Order("tb1.id DESC")
+	bd1.OrderBy("tb1.id DESC")
 	bd1.Offset(1)
 	bd1.Limit(1)
 	bd1.Select("tb1.id", "count(*)")
