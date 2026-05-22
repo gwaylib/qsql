@@ -294,6 +294,7 @@ func queryDBDataArr(db Queryer, ctx context.Context, querySql string, args ...in
 			return titles, result, errors.As(err, args)
 		}
 		result = append(result, coverDBDataArr(r))
+		r = nil // TODO: free memory
 	}
 
 	return titles, result, nil

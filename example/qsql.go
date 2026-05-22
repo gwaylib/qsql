@@ -100,7 +100,7 @@ func main() {
 		From("user").
 		Where(true, "id=?", "t1").
 		Where(rand.Int()%2 == 0, "OR (created_at BETWEN ? AND ?)", time.Now().Add(-1e9), time.Now())
-	if _, _, err := mdb.QueryPageArr(ifBD.StrTo(mdb.DriverName()), ifBD.Args()...); err != nil {
+	if _, _, err := mdb.QueryDBDataArr(ifBD.StrTo(mdb.DriverName()), ifBD.Args()...); err != nil {
 		panic(err)
 	}
 
@@ -124,7 +124,7 @@ func main() {
 
 	// query data in string
 	// table type
-	titles, data, err := mdb.QueryPageArr("SELECT * FROM user LIMIT 10")
+	titles, data, err := mdb.QueryDBDataArr("SELECT * FROM user LIMIT 10")
 	if err != nil {
 		panic(err)
 	}
