@@ -36,11 +36,19 @@ func (d *DBData) String() string {
 	return string(*d)
 }
 
-func MakeDBData(l int) []interface{} {
+func makeDBDataArr(l int) []interface{} {
 	r := make([]interface{}, l)
 	for i := 0; i < l; i++ {
 		d := DBData("")
 		r[i] = &d
+	}
+	return r
+}
+func coverDBDataArr(data []interface{}) []DBData {
+	dataLen := len(data)
+	r := make([]DBData, dataLen)
+	for i := 0; i < dataLen; i++ {
+		r[i] = *(data[i].(*DBData))
 	}
 	return r
 }

@@ -103,6 +103,12 @@ func (db *DB) QueryPageArr(querySql string, args ...interface{}) (titles []strin
 func (db *DB) QueryPageArrContext(ctx context.Context, querySql string, args ...interface{}) (titles []string, result [][]interface{}, err error) {
 	return queryPageArr(db, ctx, querySql, args...)
 }
+func (db *DB) QueryDBDataArr(querySql string, args ...interface{}) (titles []string, result [][]DBData, err error) {
+	return queryDBDataArr(db, context.TODO(), querySql, args...)
+}
+func (db *DB) QueryDBDataArrContext(ctx context.Context, querySql string, args ...interface{}) (titles []string, result [][]DBData, err error) {
+	return queryDBDataArr(db, ctx, querySql, args...)
+}
 
 // Reflect the query result to a string map.
 func (db *DB) QueryPageMap(querySql string, args ...interface{}) (titles []string, result []map[string]interface{}, err error) {
@@ -110,6 +116,12 @@ func (db *DB) QueryPageMap(querySql string, args ...interface{}) (titles []strin
 }
 func (db *DB) QueryPageMapContext(ctx context.Context, querySql string, args ...interface{}) (titles []string, result []map[string]interface{}, err error) {
 	return queryPageMap(db, ctx, querySql, args...)
+}
+func (db *DB) QueryDBDataMap(querySql string, args ...interface{}) (titles []string, result []map[string]DBData, err error) {
+	return queryDBDataMap(db, context.TODO(), querySql, args...)
+}
+func (db *DB) QueryDBDataMapContext(ctx context.Context, querySql string, args ...interface{}) (titles []string, result []map[string]DBData, err error) {
+	return queryDBDataMap(db, ctx, querySql, args...)
 }
 
 // Return "?,?,?,?..." for default, or "@p1,@p2,@p3..." for mssql, or ":1,:2,:3..." for pgsql.

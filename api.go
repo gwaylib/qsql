@@ -72,11 +72,15 @@ type QuickSql interface {
 	// the result data is [][]*string but no nil *string pointer instance.
 	QueryPageArr(querySql string, args ...interface{}) (titles []string, result [][]interface{}, err error)
 	QueryPageArrContext(ctx context.Context, querySql string, args ...interface{}) (titles []string, result [][]interface{}, err error)
+	QueryDBDataArr(querySql string, args ...interface{}) (titles []string, result [][]DBData, err error)
+	QueryDBDataArrContext(ctx context.Context, querySql string, args ...interface{}) (titles []string, result [][]DBData, err error)
 
 	// Query a page data to map, NOT RECOMMENED to use when there is a large page data.
 	// the result data is []map[string]*string but no nil *string pointer instance.
 	QueryPageMap(querySql string, args ...interface{}) (titles []string, result []map[string]interface{}, err error)
 	QueryPageMapContext(ctx context.Context, querySql string, args ...interface{}) (titles []string, result []map[string]interface{}, err error)
+	QueryDBDataMap(querySql string, args ...interface{}) (titles []string, result []map[string]DBData, err error)
+	QueryDBDataMapContext(ctx context.Context, querySql string, args ...interface{}) (titles []string, result []map[string]DBData, err error)
 
 	// Extend stmt for the where in
 	// paramStartIdx default is 0, but you need count it when the driver is mssq, pgsql etc. .
@@ -190,11 +194,25 @@ func QueryPageArrContext(queryer Queryer, ctx context.Context, querySql string, 
 	return queryPageArr(queryer, ctx, querySql, args...)
 }
 
+func QueryDBDataArr(queryer Queryer, querySql string, args ...interface{}) (titles []string, result [][]DBData, err error) {
+	return queryDBDataArr(queryer, context.TODO(), querySql, args...)
+}
+func QueryDBDataArrContext(queryer Queryer, ctx context.Context, querySql string, args ...interface{}) (titles []string, result [][]DBData, err error) {
+	return queryDBDataArr(queryer, ctx, querySql, args...)
+}
+
 func QueryPageMap(queryer Queryer, querySql string, args ...interface{}) (titles []string, result []map[string]interface{}, err error) {
 	return queryPageMap(queryer, context.TODO(), querySql, args...)
 }
 func QueryPageMapContext(queryer Queryer, ctx context.Context, querySql string, args ...interface{}) (titles []string, result []map[string]interface{}, err error) {
 	return queryPageMap(queryer, ctx, querySql, args...)
+}
+
+func QueryDBDataMap(queryer Queryer, querySql string, args ...interface{}) (titles []string, result []map[string]DBData, err error) {
+	return queryDBDataMap(queryer, context.TODO(), querySql, args...)
+}
+func QueryDBDataMapContext(queryer Queryer, ctx context.Context, querySql string, args ...interface{}) (titles []string, result []map[string]DBData, err error) {
+	return queryDBDataMap(queryer, ctx, querySql, args...)
 }
 
 func StmtIn(paramStartIdx, paramsLen int, drvName ...string) string {

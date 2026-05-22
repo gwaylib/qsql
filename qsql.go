@@ -261,11 +261,39 @@ func queryPageArr(db Queryer, ctx context.Context, querySql string, args ...inte
 	}
 
 	for rows.Next() {
-		r := MakeDBData(len(titles))
+		r := makeDBDataArr(len(titles))
 		if err := rows.Scan(r...); err != nil {
 			return titles, result, errors.As(err, args)
 		}
 		result = append(result, r)
+	}
+
+	return titles, result, nil
+}
+
+// 执行一个通用的查询
+// 因需要查标题，相对标准sql会慢一些，适用于偷懒查询的方式
+// 即使发生错误返回至少是零长度的值
+func queryDBDataArr(db Queryer, ctx context.Context, querySql string, args ...interface{}) (titles []string, result [][]DBData, err error) {
+	titles = []string{}
+	result = [][]DBData{}
+	rows, err := db.QueryContext(ctx, querySql, args...)
+	if err != nil {
+		return titles, result, errors.As(err, args)
+	}
+	defer Close(rows)
+
+	titles, err = rows.Columns()
+	if err != nil {
+		return titles, result, errors.As(err, args)
+	}
+
+	for rows.Next() {
+		r := makeDBDataArr(len(titles))
+		if err := rows.Scan(r...); err != nil {
+			return titles, result, errors.As(err, args)
+		}
+		result = append(result, coverDBDataArr(r))
 	}
 
 	return titles, result, nil
@@ -288,13 +316,43 @@ func queryPageMap(db Queryer, ctx context.Context, querySql string, args ...inte
 
 	result := []map[string]interface{}{}
 	for rows.Next() {
-		r := MakeDBData(len(titles))
+		r := makeDBDataArr(len(titles))
 		if err := rows.Scan(r...); err != nil {
 			return titles, []map[string]interface{}{}, errors.As(err, args)
 		}
 		mData := map[string]interface{}{}
 		for i, title := range titles {
 			mData[title] = r[i]
+		}
+		result = append(result, mData)
+	}
+	return titles, result, nil
+}
+
+// 查询一条数据，并发map结构返回，以便页面可以直接调用
+// 因需要查标题，相对标准sql会慢一些，适用于偷懒查询的方式
+// 即使发生错误返回至少是零长度的值
+func queryDBDataMap(db Queryer, ctx context.Context, querySql string, args ...interface{}) ([]string, []map[string]DBData, error) {
+	rows, err := db.QueryContext(ctx, querySql, args...)
+	if err != nil {
+		return nil, []map[string]DBData{}, errors.As(err, args)
+	}
+	defer Close(rows)
+
+	titles, err := rows.Columns()
+	if err != nil {
+		return titles, []map[string]DBData{}, errors.As(err, args)
+	}
+
+	result := []map[string]DBData{}
+	for rows.Next() {
+		r := makeDBDataArr(len(titles))
+		if err := rows.Scan(r...); err != nil {
+			return titles, []map[string]DBData{}, errors.As(err, args)
+		}
+		mData := map[string]DBData{}
+		for i, title := range titles {
+			mData[title] = *(r[i].(*DBData))
 		}
 		result = append(result, mData)
 	}
