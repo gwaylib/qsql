@@ -1,4 +1,3 @@
-// the stmt placeholder using '?' for all, it will be replaced by builder.
 package qsql
 
 import (
@@ -8,7 +7,10 @@ import (
 	"strings"
 )
 
+// the stmt placeholder using '?' for common, it will be auto replaced by builder in the end.
 type SelectBuilder struct {
+	driver string
+
 	indent string
 	dump   bool
 
@@ -25,12 +27,13 @@ type SelectBuilder struct {
 	limit       int64
 }
 
-func NewSelectBuilder() *SelectBuilder {
-	return NewSelectBuilderWithIndent(" ")
+func NewSelectBuilder(driverName string) *SelectBuilder {
+	return NewSelectBuilderWithIndent(" ", driverName)
 }
 
-func NewSelectBuilderWithIndent(indent string, drvName ...string) *SelectBuilder {
+func NewSelectBuilderWithIndent(indent string, driverName string) *SelectBuilder {
 	b := &SelectBuilder{
+		driver: driverName,
 		indent: indent,
 	}
 	return b
@@ -55,6 +58,7 @@ func (b *SelectBuilder) Copy(newSelectBuffer bool) *SelectBuilder {
 		queryStr = b.queryStr
 	}
 	n := &SelectBuilder{
+		driver:      b.driver,
 		indent:      b.indent,
 		dump:        b.dump,
 		queryStr:    queryStr,
@@ -120,8 +124,8 @@ func (b *SelectBuilder) From(query string, args ...interface{}) *SelectBuilder {
 	return b
 }
 
-func (b *SelectBuilder) Where(ok bool, query string, args ...interface{}) *SelectBuilder {
-	if !ok {
+func (b *SelectBuilder) Where(add bool, query string, args ...interface{}) *SelectBuilder {
+	if !add {
 		return b
 	}
 	if len(query) == 0 {
@@ -137,10 +141,17 @@ func (b *SelectBuilder) Where(ok bool, query string, args ...interface{}) *Selec
 	return b
 }
 
-// append the slice to the sql params and return then the stmt string.
-// where in is not a slice kind, it will be panic
-func (b *SelectBuilder) In(inArgs interface{}) string {
-	v := reflect.ValueOf(inArgs)
+// add -- true append to builder, false nothing to do.
+// inQuery -- example 'id IN ?', 'AND id IN ?', 'OR id IN ?', the 'IN ?' will be repalced to in format
+func (b *SelectBuilder) WhereIn(add bool, inQuery string, sliceArgs interface{}) *SelectBuilder {
+	if !add {
+		return b
+	}
+	if len(inQuery) == 0 {
+		return b
+	}
+
+	v := reflect.ValueOf(sliceArgs)
 	if v.Kind() != reflect.Slice {
 		panic("StmtIn input is not a slice type")
 	}
@@ -154,11 +165,21 @@ func (b *SelectBuilder) In(inArgs interface{}) string {
 		stmtIn[i*2+1] = ','
 		args[i] = v.Index(i).Interface()
 	}
-	b.whereArgs = append(b.whereArgs, args...)
-	return string(stmtIn[:len(stmtIn)-1])
+	sqlStr := strings.Replace(inQuery, "IN ?", "IN ("+string(stmtIn[:len(stmtIn)-1])+")", 1)
+	if sqlStr == inQuery {
+		sqlStr = strings.Replace(inQuery, "in ?", "IN ("+string(stmtIn[:len(stmtIn)-1])+")", 1)
+		if sqlStr == inQuery {
+			panic("'IN ?' format not found: " + inQuery)
+		}
+	}
+	return b.Where(add, sqlStr, args...)
 }
 
-func (b *SelectBuilder) GroupBy(query string, args ...interface{}) *SelectBuilder {
+// add -- true append to builder, false nothing to do.
+func (b *SelectBuilder) GroupBy(add bool, query string, args ...interface{}) *SelectBuilder {
+	if !add {
+		return b
+	}
 	if len(query) == 0 {
 		return b
 	}
@@ -172,7 +193,11 @@ func (b *SelectBuilder) GroupBy(query string, args ...interface{}) *SelectBuilde
 	return b
 }
 
-func (b *SelectBuilder) OrderBy(query string, args ...interface{}) *SelectBuilder {
+// add -- true append to builder, false nothing to do.
+func (b *SelectBuilder) OrderBy(add bool, query string, args ...interface{}) *SelectBuilder {
+	if !add {
+		return b
+	}
 	if len(query) == 0 {
 		return b
 	}
@@ -186,11 +211,20 @@ func (b *SelectBuilder) OrderBy(query string, args ...interface{}) *SelectBuilde
 	return b
 }
 
-func (b *SelectBuilder) Offset(offset int64) *SelectBuilder {
+// add -- true append to builder, false nothing to do.
+func (b *SelectBuilder) Offset(add bool, offset int64) *SelectBuilder {
+	if !add {
+		return b
+	}
 	b.offset = offset
 	return b
 }
-func (b *SelectBuilder) Limit(limit int64) *SelectBuilder {
+
+// add -- true append to builder, false nothing to do.
+func (b *SelectBuilder) Limit(add bool, limit int64) *SelectBuilder {
+	if !add {
+		return b
+	}
 	b.limit = limit
 	return b
 }
@@ -206,7 +240,7 @@ func (b *SelectBuilder) Args() []interface{} {
 }
 
 // translate sql to db driver
-func (b *SelectBuilder) StrTo(drvName string) string {
+func (b *SelectBuilder) String() string {
 	if len(b.queryStr) == 0 {
 		b.queryStr = "*"
 	}
@@ -231,7 +265,7 @@ func (b *SelectBuilder) StrTo(drvName string) string {
 	}
 
 	// translate to db driver
-	switch drvName {
+	switch b.driver {
 	case DRV_NAME_ORACLE, _DRV_NAME_OCI8:
 		paramIdx := 1
 		buff := strings.Builder{}
@@ -277,8 +311,8 @@ func (b *SelectBuilder) StrTo(drvName string) string {
 	return sqlStr
 }
 
-// Merge StrTo and Args to a finally slice
-func (b *SelectBuilder) SqlTo(drvName string) []interface{} {
-	result := []interface{}{b.StrTo(drvName)}
+// Merge String and Args to a finally slice
+func (b *SelectBuilder) Sql() []interface{} {
+	result := []interface{}{b.String()}
 	return append(result, b.Args()...)
 }

@@ -95,25 +95,25 @@ func main() {
 	fmt.Printf("ids:%+v\n", ids)
 
 	// query where if condition
-	ifBD := qsql.NewSelectBuilder()
+	ifBD := qsql.NewSelectBuilder(mdb.DriverName())
 	ifBD.Select("id,created_at").
 		From("user").
 		Where(true, "id=?", "t1").
 		Where(rand.Int()%2 == 0, "OR (created_at BETWEN ? AND ?)", time.Now().Add(-1e9), time.Now())
-	if _, _, err := mdb.QueryDBDataArr(ifBD.StrTo(mdb.DriverName()), ifBD.Args()...); err != nil {
+	if _, _, err := mdb.QueryDBDataArr(ifBD.String(), ifBD.Args()...); err != nil {
 		panic(err)
 	}
 
 	// query where in
 	whereIn := []string{"t1", "t2"}
 	whereInCount := 0
-	sqlbd := qsql.NewSelectBuilder()
+	sqlbd := qsql.NewSelectBuilder(mdb.DriverName())
 	sqlbd.Select("COUNT(*)").
 		From("user").
-		Where(true, fmt.Sprintf("username in (%s)", sqlbd.In(whereIn)))
+		WhereIn(true, "username in ?", whereIn)
 
 	if err := mdb.QueryElem(&whereInCount,
-		sqlbd.StrTo(mdb.DriverName()),
+		sqlbd.String(),
 		sqlbd.Args()...,
 	); err != nil {
 		panic(err)
@@ -155,8 +155,8 @@ func main() {
 	}
 
 	// excute for stmt
-	stmt, err := mdb.Prepare(qsql.NewSelectBuilder().
-		Select("COUNT(*)").From("user").Where(true, "username=?").StrTo(mdb.DriverName()),
+	stmt, err := mdb.Prepare(qsql.NewSelectBuilder(mdb.DriverName()).
+		Select("COUNT(*)").From("user").Where(true, "username=?").String(),
 	)
 	count := 0
 	if err := stmt.QueryRow("t3").Scan(&count); err != nil {

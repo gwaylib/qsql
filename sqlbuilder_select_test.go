@@ -6,41 +6,41 @@ import (
 
 func TestSelectBuilder(t *testing.T) {
 	paramIn := []int{1, 2}
-	bd := NewSelectBuilder()
+	bd := NewSelectBuilder(DRV_NAME_POSTGRES)
 	bd.Select("count(*)")
 	bd.From("tmp tb1")
 	bd.From("INNER JOIN tmp1 tb2 ON tb2.id=tb2.tmp_id")
 	bd.Where(true, "1=1")
 	bd.Where(true, "AND (1=?)", 0)
-	bd.Where(true, "OR (tb1 IN ("+bd.In(paramIn)+"))")
-	bd.GroupBy("tb1.id")
-	bd.GroupBy("HAVING count(*)>?", 1)
-	if bd.StrTo(DRV_NAME_POSTGRES) !=
+	bd.WhereIn(true, "OR (tb1 IN ?)", paramIn)
+	bd.GroupBy(true, "tb1.id")
+	bd.GroupBy(true, "HAVING count(*)>?", 1)
+	if bd.String() !=
 		`SELECT count(*) FROM tmp tb1 INNER JOIN tmp1 tb2 ON tb2.id=tb2.tmp_id WHERE 1=1 AND (1=$1) OR (tb1 IN ($2,$3)) GROUP BY tb1.id HAVING count(*)>$4` {
 		t.Fatal(bd)
 	}
 
 	bd1 := bd.Copy(true)
-	bd1.OrderBy("tb1.id DESC")
-	bd1.Offset(1)
-	bd1.Limit(1)
+	bd1.OrderBy(true, "tb1.id DESC")
+	bd1.Offset(true, 1)
+	bd1.Limit(true, 1)
 	bd1.Select("tb1.id", "count(*)")
-	if bd1.StrTo(DRV_NAME_POSTGRES) !=
+	if bd1.String() !=
 		`SELECT tb1.id, count(*) FROM tmp tb1 INNER JOIN tmp1 tb2 ON tb2.id=tb2.tmp_id WHERE 1=1 AND (1=$1) OR (tb1 IN ($2,$3)) GROUP BY tb1.id HAVING count(*)>$4 ORDER BY tb1.id DESC OFFSET 1 LIMIT 1` {
 		t.Fatal(bd1)
 	}
 
-	bd2 := NewSelectBuilder()
+	bd2 := NewSelectBuilder(DRV_NAME_POSTGRES)
 	bd2.Select("*")
-	bd2.From("("+bd.StrTo(DRV_NAME_POSTGRES)+") tmp", bd1.Args()...)
-	if bd2.StrTo(DRV_NAME_POSTGRES) !=
+	bd2.From("("+bd.String()+") tmp", bd1.Args()...)
+	if bd2.String() !=
 		`SELECT * FROM (SELECT count(*) FROM tmp tb1 INNER JOIN tmp1 tb2 ON tb2.id=tb2.tmp_id WHERE 1=1 AND (1=$1) OR (tb1 IN ($2,$3)) GROUP BY tb1.id HAVING count(*)>$4) tmp` {
 		t.Fatal(bd2)
 	}
 
-	if len(bd2.SqlTo(DRV_NAME_POSTGRES)) != 5 {
+	if len(bd2.Sql()) != 5 {
 		// [SELECT * FROM (SELECT count(*) FROM tmp tb1 INNER JOIN tmp1 tb2 ON tb2.id=tb2.tmp_id WHERE 1=1 AND (1=$1) OR (tb1 IN ($2,$3)) GROUP BY tb1.id HAVING count(*)>$4) tmp 0 1 2 1]
-		t.Fatalf("%+v", bd2.SqlTo(DRV_NAME_POSTGRES))
+		t.Fatalf("%+v", bd2.Sql())
 	}
 }
 

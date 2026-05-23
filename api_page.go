@@ -42,7 +42,7 @@ func (p *PageSql) QueryPageArr(db *DB, args ...interface{}) ([]string, [][]inter
 	}
 	return titles, data, nil
 }
-func (p *PageSql) QueryDBDataArr(db *DB, args ...interface{}) ([]string, [][]DBData, error) {
+func (p *PageSql) QueryDBDataArr(db *DB, args ...interface{}) ([]string, [][]*DBData, error) {
 	titles, data, err := queryDBDataArr(db, context.TODO(), p.querySql, args...)
 	if err != nil {
 		return nil, nil, errors.As(err)
@@ -58,7 +58,7 @@ func (p *PageSql) QueryPageMap(db *DB, args ...interface{}) ([]string, []map[str
 	return titles, data, nil
 }
 
-func (p *PageSql) QueryDBDataMap(db *DB, args ...interface{}) ([]string, []map[string]DBData, error) {
+func (p *PageSql) QueryDBDataMap(db *DB, args ...interface{}) ([]string, []map[string]*DBData, error) {
 	titles, data, err := queryDBDataMap(db, context.TODO(), p.querySql, args...)
 	if err != nil {
 		return nil, nil, errors.As(err)

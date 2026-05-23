@@ -44,11 +44,12 @@ func makeDBDataArr(l int) []interface{} {
 	}
 	return r
 }
-func coverDBDataArr(data []interface{}) []DBData {
+
+func coverDBDataArr(data []interface{}) []*DBData {
 	dataLen := len(data)
-	r := make([]DBData, dataLen)
+	r := make([]*DBData, dataLen)
 	for i := 0; i < dataLen; i++ {
-		r[i] = *(data[i].(*DBData))
+		r[i] = (data[i]).(*DBData)
 	}
 	return r
 }
