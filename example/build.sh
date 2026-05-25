@@ -1,3 +1,3 @@
 #!/bin/sh
 
-CGO_ENABLED=1 go build
+CGO_ENABLED=0 go build

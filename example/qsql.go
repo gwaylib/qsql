@@ -8,17 +8,21 @@ import (
 
 	"github.com/gwaylib/errors"
 	"github.com/gwaylib/qsql"
-	_ "github.com/mattn/go-sqlite3"
+
+	//_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 type TestingUser struct {
-	ID       int64  `db:"id,auto_increment"` // auto_increment or autoincrement
-	UserName string `db:"username"`
-	Passwd   string `db:"passwd"`
+	ID        int64     `db:"id,auto_increment"` // auto_increment or autoincrement
+	CreatedAt time.Time `db:"created_at"`
+	UpdatedAt time.Time `db:"updated_at"`
+	UserName  string    `db:"username"`
+	Passwd    string    `db:"passwd"`
 }
 
 func main() {
-	mdb, _ := qsql.Open("sqlite3", ":memory:")
+	mdb, _ := qsql.Open("sqlite", ":memory:")
 	defer qsql.Close(mdb)
 
 	// create table by manualy
@@ -93,6 +97,16 @@ func main() {
 		panic("expect len==2")
 	}
 	fmt.Printf("ids:%+v\n", ids)
+
+	updatedAt := time.Now().In(time.FixedZone("+8", 8*3600))
+	if _, err := mdb.Exec("UPDATE user SET updated_at=? WHERE id=?", updatedAt, id); err != nil {
+		panic(err)
+	}
+	queryUpdatedAt := time.Time{}
+	if err := mdb.QueryElem(&queryUpdatedAt, "SELECT created_at FROM user LIMIT 1"); err != nil {
+		panic(err)
+	}
+	fmt.Println("query updated_at:", queryUpdatedAt)
 
 	// query where if condition
 	ifBD := qsql.NewSelectBuilder(mdb.DriverName())

@@ -1,13 +1,85 @@
 module github.com/gwaylib/qsql/example
 
-go 1.12
+go 1.25.0
 
 require (
+	github.com/chzyer/logex v1.2.1 // indirect
+	github.com/chzyer/readline v1.5.1 // indirect
+	github.com/chzyer/test v1.0.0 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/go-ini/ini v1.48.0 // indirect
+	github.com/go-sql-driver/mysql v1.4.0 // indirect
+	github.com/gomodule/redigo v1.8.6 // indirect
+	github.com/google/go-cmp v0.6.0 // indirect
+	github.com/google/pprof v0.0.0-20250317173921-a4b03ec1a45e // indirect
+	github.com/google/uuid v1.6.0 // indirect
+	github.com/gwaylib/beanmsq v0.0.0-20250413015903-34e67425271a // indirect
 	github.com/gwaylib/errors v0.0.4 // indirect
+	github.com/gwaylib/log v0.0.6 // indirect
 	github.com/gwaylib/qsql v0.0.0-00010101000000-000000000000 // indirect
+	github.com/gwaylib/redis v0.0.0-20231110105356-a4910e0c1eaf // indirect
+	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
+	github.com/ianlancetaylor/demangle v0.0.0-20240312041847-bd984b5ce465 // indirect
+	github.com/iwanbk/gobeanstalk v0.0.0-20160903043409-dbbb23937c31 // indirect
 	github.com/jmoiron/sqlx v1.2.0 // indirect
+	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
+	github.com/kr/beanstalk v0.0.0-20180818045031-cae1762e4858 // indirect
+	github.com/labstack/gommon v0.3.1 // indirect
+	github.com/lib/pq v1.0.0 // indirect
+	github.com/mattn/go-colorable v0.1.12 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-sqlite3 v1.14.17 // indirect
+	github.com/ncruces/go-strftime v1.0.0 // indirect
+	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
+	github.com/stretchr/objx v0.1.0 // indirect
+	github.com/stretchr/testify v1.7.0 // indirect
+	github.com/valyala/bytebufferpool v1.0.0 // indirect
+	github.com/valyala/fasttemplate v1.2.1 // indirect
+	github.com/yuin/goldmark v1.4.13 // indirect
+	golang.org/x/crypto v0.48.0 // indirect
+	golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546 // indirect
+	golang.org/x/mod v0.33.0 // indirect
+	golang.org/x/net v0.50.0 // indirect
+	golang.org/x/sync v0.20.0 // indirect
+	golang.org/x/sys v0.42.0 // indirect
+	golang.org/x/telemetry v0.0.0-20260209163413-e7419c687ee4 // indirect
+	golang.org/x/term v0.40.0 // indirect
+	golang.org/x/text v0.34.0 // indirect
+	golang.org/x/tools v0.42.0 // indirect
+	golang.org/x/tools/go/expect v0.1.1-deprecated // indirect
+	golang.org/x/tools/go/packages/packagestest v0.1.1-deprecated // indirect
+	golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7 // indirect
+	gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 // indirect
+	gopkg.in/yaml.v2 v2.2.2 // indirect
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
+	lukechampine.com/uint128 v1.2.0 // indirect
+	modernc.org/cc/v3 v3.41.0 // indirect
+	modernc.org/cc/v4 v4.28.2 // indirect
+	modernc.org/ccgo/v3 v3.17.0 // indirect
+	modernc.org/ccgo/v4 v4.34.0 // indirect
+	modernc.org/ccorpus v1.11.6 // indirect
+	modernc.org/ccorpus2 v1.6.0 // indirect
+	modernc.org/ebnf v1.1.0 // indirect
+	modernc.org/ebnfutil v1.1.0 // indirect
+	modernc.org/fileutil v1.4.0 // indirect
+	modernc.org/gc/v2 v2.6.5 // indirect
+	modernc.org/gc/v3 v3.1.2 // indirect
+	modernc.org/goabi0 v0.2.0 // indirect
+	modernc.org/httpfs v1.0.6 // indirect
+	modernc.org/lex v1.1.1 // indirect
+	modernc.org/lexer v1.0.4 // indirect
+	modernc.org/libc v1.72.3 // indirect
+	modernc.org/mathutil v1.7.1 // indirect
+	modernc.org/memory v1.11.0 // indirect
+	modernc.org/opt v0.2.0 // indirect
+	modernc.org/scannertest v1.0.2 // indirect
+	modernc.org/sortutil v1.2.1 // indirect
+	modernc.org/sqlite v1.50.1 // indirect
+	modernc.org/strutil v1.2.1 // indirect
+	modernc.org/token v1.1.0 // indirect
 )
 
 replace github.com/gwaylib/qsql => ../
