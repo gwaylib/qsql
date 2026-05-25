@@ -98,8 +98,8 @@ func main() {
 	ifBD := qsql.NewSelectBuilder(mdb.DriverName())
 	ifBD.Select("id,created_at").
 		From("user").
-		Where(true, "id=?", "t1").
-		Where(rand.Int()%2 == 0, "OR (created_at BETWEN ? AND ?)", time.Now().Add(-1e9), time.Now())
+		IfWhere(true, "id=?", "t1").
+		IfWhere(rand.Int()%2 == 0, "OR (created_at BETWEN ? AND ?)", time.Now().Add(-1e9), time.Now())
 	if _, _, err := mdb.QueryDBDataArr(ifBD.String(), ifBD.Args()...); err != nil {
 		panic(err)
 	}
@@ -110,7 +110,7 @@ func main() {
 	sqlbd := qsql.NewSelectBuilder(mdb.DriverName())
 	sqlbd.Select("COUNT(*)").
 		From("user").
-		WhereIn(true, "username in ?", whereIn)
+		WhereIn("username in ?", whereIn)
 
 	if err := mdb.QueryElem(&whereInCount,
 		sqlbd.String(),
@@ -156,7 +156,7 @@ func main() {
 
 	// excute for stmt
 	stmt, err := mdb.Prepare(qsql.NewSelectBuilder(mdb.DriverName()).
-		Select("COUNT(*)").From("user").Where(true, "username=?").String(),
+		Select("COUNT(*)").From("user").Where("username=?").String(),
 	)
 	count := 0
 	if err := stmt.QueryRow("t3").Scan(&count); err != nil {

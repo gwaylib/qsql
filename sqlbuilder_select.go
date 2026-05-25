@@ -7,6 +7,10 @@ import (
 	"strings"
 )
 
+type BuilderDriver interface {
+	DriverName() string
+}
+
 // the stmt placeholder using '?' for common, it will be auto replaced by builder in the end.
 type SelectBuilder struct {
 	driver string
@@ -27,16 +31,20 @@ type SelectBuilder struct {
 	limit       int64
 }
 
-func NewSelectBuilder(driverName string) *SelectBuilder {
-	return NewSelectBuilderWithIndent(" ", driverName)
-}
-
 func NewSelectBuilderWithIndent(indent string, driverName string) *SelectBuilder {
 	b := &SelectBuilder{
 		driver: driverName,
 		indent: indent,
 	}
 	return b
+}
+
+func NewSelectBuilder(driverName string) *SelectBuilder {
+	return NewSelectBuilderWithIndent(" ", driverName)
+}
+
+func NewSelectBuidler(drv BuilderDriver) *SelectBuilder {
+	return NewSelectBuilder(drv.DriverName())
 }
 
 func (b *SelectBuilder) SetDump(dump bool) *SelectBuilder {
@@ -82,15 +90,15 @@ func (b *SelectBuilder) Copy(newSelectBuffer bool) *SelectBuilder {
 
 // select the columns and append to select buffer
 func (b *SelectBuilder) Select(column ...string) *SelectBuilder {
-	if len(column) > 0 {
-		queryStr := strings.Join(column, ", ")
-		if len(b.queryStr) > 0 {
-			b.queryStr += (", " + queryStr)
-		} else {
-			b.queryStr = queryStr
-		}
-	} else if len(b.queryStr) == 0 {
-		b.queryStr = "*"
+	if len(column) == 0 {
+		return b
+	}
+
+	queryStr := strings.Join(column, ", ")
+	if len(b.queryStr) > 0 {
+		b.queryStr += (", " + queryStr)
+	} else {
+		b.queryStr = queryStr
 	}
 	return b
 }
@@ -124,7 +132,7 @@ func (b *SelectBuilder) From(query string, args ...interface{}) *SelectBuilder {
 	return b
 }
 
-func (b *SelectBuilder) Where(add bool, query string, args ...interface{}) *SelectBuilder {
+func (b *SelectBuilder) IfWhere(add bool, query string, args ...interface{}) *SelectBuilder {
 	if !add {
 		return b
 	}
@@ -140,10 +148,13 @@ func (b *SelectBuilder) Where(add bool, query string, args ...interface{}) *Sele
 	}
 	return b
 }
+func (b *SelectBuilder) Where(query string, args ...interface{}) *SelectBuilder {
+	return b.IfWhere(true, query, args...)
+}
 
 // add -- true append to builder, false nothing to do.
 // inQuery -- example 'id IN ?', 'AND id IN ?', 'OR id IN ?', the 'IN ?' will be repalced to in format
-func (b *SelectBuilder) WhereIn(add bool, inQuery string, sliceArgs interface{}) *SelectBuilder {
+func (b *SelectBuilder) IfWhereIn(add bool, inQuery string, sliceArgs interface{}) *SelectBuilder {
 	if !add {
 		return b
 	}
@@ -172,11 +183,15 @@ func (b *SelectBuilder) WhereIn(add bool, inQuery string, sliceArgs interface{})
 			panic("'IN ?' format not found: " + inQuery)
 		}
 	}
-	return b.Where(add, sqlStr, args...)
+	return b.IfWhere(add, sqlStr, args...)
+}
+
+func (b *SelectBuilder) WhereIn(inQuery string, sliceArgs interface{}) *SelectBuilder {
+	return b.IfWhereIn(true, inQuery, sliceArgs)
 }
 
 // add -- true append to builder, false nothing to do.
-func (b *SelectBuilder) GroupBy(add bool, query string, args ...interface{}) *SelectBuilder {
+func (b *SelectBuilder) IfGroupBy(add bool, query string, args ...interface{}) *SelectBuilder {
 	if !add {
 		return b
 	}
@@ -192,9 +207,12 @@ func (b *SelectBuilder) GroupBy(add bool, query string, args ...interface{}) *Se
 	}
 	return b
 }
+func (b *SelectBuilder) GroupBy(query string, args ...interface{}) *SelectBuilder {
+	return b.IfGroupBy(true, query, args...)
+}
 
 // add -- true append to builder, false nothing to do.
-func (b *SelectBuilder) OrderBy(add bool, query string, args ...interface{}) *SelectBuilder {
+func (b *SelectBuilder) IfOrderBy(add bool, query string, args ...interface{}) *SelectBuilder {
 	if !add {
 		return b
 	}
@@ -211,22 +229,32 @@ func (b *SelectBuilder) OrderBy(add bool, query string, args ...interface{}) *Se
 	return b
 }
 
+func (b *SelectBuilder) OrderBy(add bool, query string, args ...interface{}) *SelectBuilder {
+	return b.IfOrderBy(true, query, args...)
+}
+
 // add -- true append to builder, false nothing to do.
-func (b *SelectBuilder) Offset(add bool, offset int64) *SelectBuilder {
+func (b *SelectBuilder) IfOffset(add bool, offset int64) *SelectBuilder {
 	if !add {
 		return b
 	}
 	b.offset = offset
 	return b
 }
+func (b *SelectBuilder) Offset(offset int64) *SelectBuilder {
+	return b.IfOffset(true, offset)
+}
 
 // add -- true append to builder, false nothing to do.
-func (b *SelectBuilder) Limit(add bool, limit int64) *SelectBuilder {
+func (b *SelectBuilder) IfLimit(add bool, limit int64) *SelectBuilder {
 	if !add {
 		return b
 	}
 	b.limit = limit
 	return b
+}
+func (b *SelectBuilder) Limit(add bool, limit int64) *SelectBuilder {
+	return b.IfLimit(true, limit)
 }
 
 // get the buffer args
