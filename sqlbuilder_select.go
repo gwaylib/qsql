@@ -229,7 +229,7 @@ func (b *SelectBuilder) IfOrderBy(add bool, query string, args ...interface{}) *
 	return b
 }
 
-func (b *SelectBuilder) OrderBy(add bool, query string, args ...interface{}) *SelectBuilder {
+func (b *SelectBuilder) OrderBy(query string, args ...interface{}) *SelectBuilder {
 	return b.IfOrderBy(true, query, args...)
 }
 
