@@ -253,7 +253,7 @@ func (b *SelectBuilder) IfLimit(add bool, limit int64) *SelectBuilder {
 	b.limit = limit
 	return b
 }
-func (b *SelectBuilder) Limit(add bool, limit int64) *SelectBuilder {
+func (b *SelectBuilder) Limit(limit int64) *SelectBuilder {
 	return b.IfLimit(true, limit)
 }
 

@@ -227,7 +227,7 @@ func main() {
     bd.Select("id", "created_at")
     bd.From("tmp")
     bd.Where(true, "created_at BETWEEN ? AND ?", time.Now().AddDate(-1,0,0), time.Now())
-    bd.Where(len(inIds)>0, fmt.Sprintf("AND id IN (%s)", bd.AddStmtIn(inIds))) // create the sql params as '?', becareful, it has performance issues when the 'inIds' is too large.
+    bd.IfWhereIn(len(inIds)>0, "AND id IN ?", inIds) // create the sql params as '?', becareful, it has performance issues when the 'inIds' is too large.
     titles, data, err := mdb.QueryDBDataArr(bd.StrTo(mdb.DriverName()), bd.Args(mdb.DriverName())...) 
     if err != nil {
         panic(err)
