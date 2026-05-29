@@ -285,11 +285,11 @@ func (b *SelectBuilder) String() string {
 	if len(b.orderByStr) > 0 {
 		sqlStr += (b.Indent() + "ORDER BY " + b.orderByStr)
 	}
-	if b.offset > 0 {
-		sqlStr += (b.Indent() + "OFFSET " + strconv.FormatInt(b.offset, 10))
-	}
 	if b.limit > 0 {
 		sqlStr += (b.Indent() + "LIMIT " + strconv.FormatInt(b.limit, 10))
+	}
+	if b.offset > 0 {
+		sqlStr += (b.Indent() + "OFFSET " + strconv.FormatInt(b.offset, 10))
 	}
 
 	// translate to db driver
