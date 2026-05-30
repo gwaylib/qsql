@@ -108,12 +108,12 @@ func main() {
 	}
 	fmt.Println("query updated_at:", queryUpdatedAt)
 
-	// query where if condition
+	// query if condition
 	ifBD := qsql.NewSelectBuilder(mdb.DriverName())
 	ifBD.Select("id,created_at").
 		From("user").
 		IfWhere(true, "id=?", "t1").
-		IfWhere(rand.Int()%2 == 0, "OR (created_at BETWEN ? AND ?)", time.Now().Add(-1e9), time.Now())
+		IfWhere(rand.Int()%2 == 0, "OR (created_at BETWEEN ? AND ?)", time.Now().Add(-1e9), time.Now())
 	if _, _, err := mdb.QueryDBDataArr(ifBD.String(), ifBD.Args()...); err != nil {
 		panic(err)
 	}
