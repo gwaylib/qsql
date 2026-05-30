@@ -61,10 +61,18 @@ func rmCache(src *DB) {
 
 func closeCache() {
 	cacheLock.Lock()
-	defer cacheLock.Unlock()
+	dbs := make([]*DB, 0, len(cache))
 	for key, db := range cache {
-		Close(db)
+		dbs = append(dbs, db)
 		delete(cache, key)
+	}
+	cacheLock.Unlock()
+
+	for _, db := range dbs {
+		db.mu.Lock()
+		db.isClose = true
+		db.mu.Unlock()
+		Close(db.DB)
 	}
 }
 

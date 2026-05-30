@@ -10,23 +10,23 @@ func TestSelectBuilder(t *testing.T) {
 	bd.Select("count(*)")
 	bd.From("tmp tb1")
 	bd.From("INNER JOIN tmp1 tb2 ON tb2.id=tb2.tmp_id")
-	bd.Where(true, "1=1")
-	bd.Where(true, "AND (1=?)", 0)
-	bd.WhereIn(true, "OR (tb1 IN ?)", paramIn)
-	bd.GroupBy(true, "tb1.id")
-	bd.GroupBy(true, "HAVING count(*)>?", 1)
+	bd.Where("1=1")
+	bd.Where("AND (1=?)", 0)
+	bd.WhereIn("OR (tb1 IN ?)", paramIn)
+	bd.GroupBy("tb1.id")
+	bd.GroupBy("HAVING count(*)>?", 1)
 	if bd.String() !=
 		`SELECT count(*) FROM tmp tb1 INNER JOIN tmp1 tb2 ON tb2.id=tb2.tmp_id WHERE 1=1 AND (1=$1) OR (tb1 IN ($2,$3)) GROUP BY tb1.id HAVING count(*)>$4` {
 		t.Fatal(bd)
 	}
 
 	bd1 := bd.Copy(true)
-	bd1.OrderBy(true, "tb1.id DESC")
-	bd1.Offset(true, 1)
-	bd1.Limit(true, 1)
+	bd1.OrderBy("tb1.id DESC")
+	bd1.Offset(1)
+	bd1.Limit(1)
 	bd1.Select("tb1.id", "count(*)")
 	if bd1.String() !=
-		`SELECT tb1.id, count(*) FROM tmp tb1 INNER JOIN tmp1 tb2 ON tb2.id=tb2.tmp_id WHERE 1=1 AND (1=$1) OR (tb1 IN ($2,$3)) GROUP BY tb1.id HAVING count(*)>$4 ORDER BY tb1.id DESC OFFSET 1 LIMIT 1` {
+		`SELECT tb1.id, count(*) FROM tmp tb1 INNER JOIN tmp1 tb2 ON tb2.id=tb2.tmp_id WHERE 1=1 AND (1=$1) OR (tb1 IN ($2,$3)) GROUP BY tb1.id HAVING count(*)>$4 ORDER BY tb1.id DESC LIMIT 1 OFFSET 1` {
 		t.Fatal(bd1)
 	}
 
@@ -39,49 +39,6 @@ func TestSelectBuilder(t *testing.T) {
 	}
 
 	if len(bd2.Sql()) != 5 {
-		// [SELECT * FROM (SELECT count(*) FROM tmp tb1 INNER JOIN tmp1 tb2 ON tb2.id=tb2.tmp_id WHERE 1=1 AND (1=$1) OR (tb1 IN ($2,$3)) GROUP BY tb1.id HAVING count(*)>$4) tmp 0 1 2 1]
 		t.Fatalf("%+v", bd2.Sql())
 	}
 }
-
-// func TestSqlBuilderUpdate(t *testing.T) {
-// 	bd := NewSqlBuilder(DRV_NAME_POSTGRES)
-// 	bd.Update("UPDATE tmp SET")
-// 	bd.TabAdd("(val1=?, val2=?)", 1, 2)
-// 	bd.Add("WHERE")
-// 	bd.TabAdd("id=?", 1)
-// 	if bd.String() !=
-// 		`UPDATE tmp SET (val1=$1, val2=$2) WHERE id=$3` {
-// 		t.Fatal(bd)
-// 	}
-// 	if len(bd.Sql()) != 4 {
-// 		t.Fatal(bd.Sql())
-// 	}
-//
-// 	bd1 := NewSqlBuilder(DRV_NAME_POSTGRES)
-// 	bd1.Add("UPDATE tmp SET")
-// 	bd1.TabAdd("val1=?,", 1)
-// 	bd1.TabAdd("val2=?", 2)
-// 	bd1.Add("WHERE")
-// 	bd1.TabAdd("id=?", 1)
-// 	if bd1.String() !=
-// 		`UPDATE tmp SET val1=$1, val2=$2 WHERE id=$3` {
-// 		t.Fatal(bd1)
-// 	}
-// 	if len(bd1.Sql()) != 4 {
-// 		t.Fatal(bd1.Sql())
-// 	}
-// }
-//
-// func TestSqlBuilderDel(t *testing.T) {
-// 	bd := NewSqlBuilder(DRV_NAME_POSTGRES)
-// 	bd.Add("DELETE FROM tmp WHERE")
-// 	bd.TabAdd("id=?", 1)
-// 	if bd.String() !=
-// 		`DELETE FROM tmp WHERE id=$1` {
-// 		t.Fatal(bd)
-// 	}
-// 	if len(bd.Sql()) != 2 {
-// 		t.Fatal(bd.Sql())
-// 	}
-// }
